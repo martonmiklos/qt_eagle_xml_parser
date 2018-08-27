@@ -1,5 +1,5 @@
 #!/bin/bash
-KXML_COMPILER=../../../../../kode-mm/kxml_compiler/kxml_compiler 
+KXML_COMPILER=../../../../kode-mm/kxml_compiler/kxml_compiler 
 
 cp -f eagle.dtd eagle_fixed.dtd
 sed -i -e 's/\, compatibility?//g' eagle_fixed.dtd
