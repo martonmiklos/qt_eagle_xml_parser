@@ -13,11 +13,9 @@ class Layer
   public:
     typedef QList<Layer> List;
 
-  public:
     enum VisibleEnum { Visible_no, Visible_yes, Visible_Invalid };
     enum ActiveEnum { Active_no, Active_yes, Active_Invalid };
 
-  public:
     void setNumber( int v );
     int number() const;
     void setName( const QString &v );
@@ -76,7 +74,6 @@ class Grid
     enum AltunitdistEnum { Altunitdist_mic, Altunitdist_mm, Altunitdist_mil, Altunitdist_inch, Altunitdist_Invalid };
     enum AltunitEnum { Altunit_mic, Altunit_mm, Altunit_mil, Altunit_inch, Altunit_Invalid };
 
-  public:
     void setDistance( int v );
     int distance() const;
     void setUnitdist( const UnitdistEnum &v );
@@ -131,12 +128,10 @@ class Setting
   public:
     typedef QList<Setting> List;
 
-  public:
     enum AlwaysvectorfontEnum { Alwaysvectorfont_no, Alwaysvectorfont_yes, Alwaysvectorfont_Invalid };
     enum VerticaltextEnum { Verticaltext_up, Verticaltext_down, Verticaltext_Invalid };
     enum KeepoldvectorfontEnum { Keepoldvectorfont_no, Keepoldvectorfont_yes, Keepoldvectorfont_Invalid };
 
-  public:
     void setAlwaysvectorfont( const AlwaysvectorfontEnum &v );
     Setting::AlwaysvectorfontEnum alwaysvectorfont() const;
     void setVerticaltext( const VerticaltextEnum &v );
@@ -183,11 +178,9 @@ class Via
   public:
     typedef QList<Via> List;
 
-  public:
     enum ShapeEnum { Shape_square, Shape_round, Shape_octagon, Shape_long, Shape_offset, Shape_Invalid };
     enum AlwaysstopEnum { Alwaysstop_no, Alwaysstop_yes, Alwaysstop_Invalid };
 
-  public:
     void setX( double v );
     double x() const;
     void setY( double v );
@@ -228,10 +221,8 @@ class Contactref
   public:
     typedef QList<Contactref> List;
 
-  public:
     enum RouteEnum { Route_all, Route_any, Route_Invalid };
 
-  public:
     void setElement( const QString &v );
     QString element() const;
     void setPad( const QString &v );
@@ -261,7 +252,6 @@ class Vertex
   public:
     typedef QList<Vertex> List;
 
-  public:
     void setX( double v );
     double x() const;
     void setY( double v );
@@ -285,12 +275,10 @@ class Polygon
   public:
     typedef QList<Polygon> List;
 
-  public:
     enum PourEnum { Pour_solid, Pour_hatch, Pour_cutout, Pour_Invalid };
     enum OrphansEnum { Orphans_no, Orphans_yes, Orphans_Invalid };
     enum ThermalsEnum { Thermals_no, Thermals_yes, Thermals_Invalid };
 
-  public:
     void setWidth( double v );
     double width() const;
     void setLayer( int v );
@@ -340,11 +328,9 @@ class Wire
   public:
     typedef QList<Wire> List;
 
-  public:
     enum StyleEnum { Style_continuous, Style_longdash, Style_shortdash, Style_dashdot, Style_Invalid };
     enum CapEnum { Cap_flat, Cap_round, Cap_Invalid };
 
-  public:
     void setX1( double v );
     double x1() const;
     void setY1( double v );
@@ -394,10 +380,8 @@ class Signal
   public:
     typedef QList<Signal> List;
 
-  public:
     enum AirwireshiddenEnum { Airwireshidden_no, Airwireshidden_yes, Airwireshidden_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setClass( int v );
@@ -456,13 +440,11 @@ class Attribute
   public:
     typedef QList<Attribute> List;
 
-  public:
     enum FontEnum { Font_vector, Font_proportional, Font_fixed, Font_Invalid };
     enum DisplayEnum { Display_off, Display_value, Display_name, Display_both, Display_Invalid };
     enum ConstantEnum { Constant_no, Constant_yes, Constant_Invalid };
     enum AlignEnum { Align_bottom_left, Align_bottom_center, Align_bottom_right, Align_center_left, Align_center, Align_center_right, Align_top_left, Align_top_center, Align_top_right, Align_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setValue( const QString &v );
@@ -522,10 +504,8 @@ class Variant
   public:
     typedef QList<Variant> List;
 
-  public:
     enum PopulateEnum { Populate_no, Populate_yes, Populate_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setPopulate( const PopulateEnum &v );
@@ -555,12 +535,10 @@ class Element
   public:
     typedef QList<Element> List;
 
-  public:
     enum LockedEnum { Locked_no, Locked_yes, Locked_Invalid };
     enum PopulateEnum { Populate_no, Populate_yes, Populate_Invalid };
     enum SmashedEnum { Smashed_no, Smashed_yes, Smashed_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setLibrary( const QString &v );
@@ -642,7 +620,6 @@ class Param
   public:
     typedef QList<Param> List;
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setValue( const QString &v );
@@ -663,10 +640,8 @@ class Pass
   public:
     typedef QList<Pass> List;
 
-  public:
     enum ActiveEnum { Active_no, Active_yes, Active_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setRefer( const QString &v );
@@ -713,7 +688,6 @@ class Description
   public:
     typedef QList<Description> List;
 
-  public:
     void setLanguage( const QString &v );
     QString language() const;
     void setValue( const QString &v );
@@ -787,11 +761,9 @@ class Text
   public:
     typedef QList<Text> List;
 
-  public:
     enum FontEnum { Font_vector, Font_proportional, Font_fixed, Font_Invalid };
     enum AlignEnum { Align_bottom_left, Align_bottom_center, Align_bottom_right, Align_center_left, Align_center, Align_center_right, Align_top_left, Align_top_center, Align_top_right, Align_Invalid };
 
-  public:
     void setX( double v );
     double x() const;
     void setY( double v );
@@ -841,12 +813,10 @@ class Dimension
   public:
     typedef QList<Dimension> List;
 
-  public:
     enum DtypeEnum { Dtype_parallel, Dtype_horizontal, Dtype_vertical, Dtype_radius, Dtype_diameter, Dtype_leader, Dtype_Invalid };
     enum UnitEnum { Unit_mic, Unit_mm, Unit_mil, Unit_inch, Unit_Invalid };
     enum VisibleEnum { Visible_no, Visible_yes, Visible_Invalid };
 
-  public:
     void setX1( double v );
     double x1() const;
     void setY1( double v );
@@ -919,7 +889,6 @@ class Circle
   public:
     typedef QList<Circle> List;
 
-  public:
     void setX( double v );
     double x() const;
     void setY( double v );
@@ -949,7 +918,6 @@ class Rectangle
   public:
     typedef QList<Rectangle> List;
 
-  public:
     void setX1( double v );
     double x1() const;
     void setY1( double v );
@@ -982,13 +950,11 @@ class Frame
   public:
     typedef QList<Frame> List;
 
-  public:
     enum BorderLeftEnum { BorderLeft_no, BorderLeft_yes, BorderLeft_Invalid };
     enum BorderTopEnum { BorderTop_no, BorderTop_yes, BorderTop_Invalid };
     enum BorderRightEnum { BorderRight_no, BorderRight_yes, BorderRight_Invalid };
     enum BorderBottomEnum { BorderBottom_no, BorderBottom_yes, BorderBottom_Invalid };
 
-  public:
     void setX1( double v );
     double x1() const;
     void setY1( double v );
@@ -1045,7 +1011,6 @@ class Hole
   public:
     typedef QList<Hole> List;
 
-  public:
     void setX( double v );
     double x() const;
     void setY( double v );
@@ -1113,13 +1078,11 @@ class Pad
   public:
     typedef QList<Pad> List;
 
-  public:
     enum ShapeEnum { Shape_square, Shape_round, Shape_octagon, Shape_long, Shape_offset, Shape_Invalid };
     enum StopEnum { Stop_no, Stop_yes, Stop_Invalid };
     enum ThermalsEnum { Thermals_no, Thermals_yes, Thermals_Invalid };
     enum FirstEnum { First_no, First_yes, First_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setX( double v );
@@ -1173,12 +1136,10 @@ class Smd
   public:
     typedef QList<Smd> List;
 
-  public:
     enum StopEnum { Stop_no, Stop_yes, Stop_Invalid };
     enum ThermalsEnum { Thermals_no, Thermals_yes, Thermals_Invalid };
     enum CreamEnum { Cream_no, Cream_yes, Cream_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setX( double v );
@@ -1233,11 +1194,9 @@ class Package
   public:
     typedef QList<Package> List;
 
-  public:
     enum LocallyModifiedEnum { LocallyModified_no, LocallyModified_yes, LocallyModified_Invalid };
     enum LibraryLocallyModifiedEnum { LibraryLocallyModified_no, LibraryLocallyModified_yes, LibraryLocallyModified_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setUrn( const QString &v );
@@ -1331,13 +1290,11 @@ class Pin
   public:
     typedef QList<Pin> List;
 
-  public:
     enum VisibleEnum { Visible_no, Visible_yes, Visible_Invalid };
     enum LengthEnum { Length_point, Length_short, Length_middle, Length_long, Length_Invalid };
     enum DirectionEnum { Direction_nc, Direction_in, Direction_out, Direction_io, Direction_oc, Direction_pwr, Direction_pas, Direction_hiz, Direction_sup, Direction_Invalid };
     enum FunctionEnum { Function_none, Function_dot, Function_clk, Function_dotclk, Function_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setX( double v );
@@ -1388,11 +1345,9 @@ class Symbol
   public:
     typedef QList<Symbol> List;
 
-  public:
     enum LocallyModifiedEnum { LocallyModified_no, LocallyModified_yes, LocallyModified_Invalid };
     enum LibraryLocallyModifiedEnum { LibraryLocallyModified_no, LibraryLocallyModified_yes, LibraryLocallyModified_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setUrn( const QString &v );
@@ -1478,10 +1433,8 @@ class Gate
   public:
     typedef QList<Gate> List;
 
-  public:
     enum AddlevelEnum { Addlevel_must, Addlevel_can, Addlevel_next, Addlevel_request, Addlevel_always, Addlevel_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setSymbol( const QString &v );
@@ -1533,10 +1486,8 @@ class Connect
   public:
     typedef QList<Connect> List;
 
-  public:
     enum RouteEnum { Route_all, Route_any, Route_Invalid };
 
-  public:
     void setGate( const QString &v );
     QString gate() const;
     void setPin( const QString &v );
@@ -1582,7 +1533,6 @@ class Package3dinstance
   public:
     typedef QList<Package3dinstance> List;
 
-  public:
     void setPackage3dUrn( const QString &v );
     QString package3dUrn() const;
     /**
@@ -1616,7 +1566,6 @@ class Technology
   public:
     typedef QList<Technology> List;
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void addAttribute( const Attribute &v );
@@ -1654,7 +1603,6 @@ class Device
   public:
     typedef QList<Device> List;
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setPackage( const QString &v );
@@ -1700,7 +1648,6 @@ class Pinmap
   public:
     typedef QList<Pinmap> List;
 
-  public:
     void setGate( const QString &v );
     QString gate() const;
     void setPin( const QString &v );
@@ -1725,7 +1672,6 @@ class Pinmapping
     enum IsusermapEnum { Isusermap_no, Isusermap_yes, Isusermap_Invalid };
     enum IddevicewideEnum { Iddevicewide_no, Iddevicewide_yes, Iddevicewide_Invalid };
 
-  public:
     void setIsusermap( const IsusermapEnum &v );
     Pinmapping::IsusermapEnum isusermap() const;
     void setIddevicewide( const IddevicewideEnum &v );
@@ -1794,12 +1740,10 @@ class Deviceset
   public:
     typedef QList<Deviceset> List;
 
-  public:
     enum LocallyModifiedEnum { LocallyModified_no, LocallyModified_yes, LocallyModified_Invalid };
     enum UservalueEnum { Uservalue_no, Uservalue_yes, Uservalue_Invalid };
     enum LibraryLocallyModifiedEnum { LibraryLocallyModified_no, LibraryLocallyModified_yes, LibraryLocallyModified_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setUrn( const QString &v );
@@ -1870,7 +1814,6 @@ class Library
   public:
     typedef QList<Library> List;
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setUrn( const QString &v );
@@ -1935,10 +1878,8 @@ class Variantdef
   public:
     typedef QList<Variantdef> List;
 
-  public:
     enum CurrentEnum { Current_no, Current_yes, Current_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setCurrent( const CurrentEnum &v );
@@ -1978,7 +1919,6 @@ class Clearance
   public:
     typedef QList<Clearance> List;
 
-  public:
     void setClass( int v );
     int class_() const;
     void setValue( const QString &v );
@@ -1999,7 +1939,6 @@ class Class
   public:
     typedef QList<Class> List;
 
-  public:
     void setNumber( int v );
     int number() const;
     void setName( const QString &v );
@@ -2046,7 +1985,6 @@ class Approved
   public:
     typedef QList<Approved> List;
 
-  public:
     void setHash( const QString &v );
     QString hash() const;
     /**
@@ -2131,7 +2069,6 @@ class Pinref
   public:
     typedef QList<Pinref> List;
 
-  public:
     void setPart( const QString &v );
     QString part() const;
     void setGate( const QString &v );
@@ -2155,7 +2092,6 @@ class Portref
   public:
     typedef QList<Portref> List;
 
-  public:
     void setModuleinst( const QString &v );
     QString moduleinst() const;
     void setPort( const QString &v );
@@ -2176,7 +2112,6 @@ class Junction
   public:
     typedef QList<Junction> List;
 
-  public:
     void setX( double v );
     double x() const;
     void setY( double v );
@@ -2197,12 +2132,10 @@ class Label
   public:
     typedef QList<Label> List;
 
-  public:
     enum FontEnum { Font_vector, Font_proportional, Font_fixed, Font_Invalid };
     enum XrefEnum { Xref_no, Xref_yes, Xref_Invalid };
     enum AlignEnum { Align_bottom_left, Align_bottom_center, Align_bottom_right, Align_center_left, Align_center, Align_center_right, Align_top_left, Align_top_center, Align_top_right, Align_Invalid };
 
-  public:
     void setX( double v );
     double x() const;
     void setY( double v );
@@ -2251,11 +2184,9 @@ class Probe
   public:
     typedef QList<Probe> List;
 
-  public:
     enum FontEnum { Font_vector, Font_proportional, Font_fixed, Font_Invalid };
     enum XrefEnum { Xref_no, Xref_yes, Xref_Invalid };
 
-  public:
     void setX( double v );
     double x() const;
     void setY( double v );
@@ -2299,7 +2230,6 @@ class Segment
   public:
     typedef QList<Segment> List;
 
-  public:
     void addPinref( const Pinref &v );
     void setPinrefList( const Pinref::List &v );
     Pinref::List pinrefList() const;
@@ -2338,7 +2268,6 @@ class Net
   public:
     typedef QList<Net> List;
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setClass( int v );
@@ -2379,7 +2308,6 @@ class Bus
   public:
     typedef QList<Bus> List;
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void addSegment( const Segment &v );
@@ -2417,10 +2345,8 @@ class Instance
   public:
     typedef QList<Instance> List;
 
-  public:
     enum SmashedEnum { Smashed_no, Smashed_yes, Smashed_Invalid };
 
-  public:
     void setPart( const QString &v );
     QString part() const;
     void setGate( const QString &v );
@@ -2476,10 +2402,8 @@ class Moduleinst
   public:
     typedef QList<Moduleinst> List;
 
-  public:
     enum SmashedEnum { Smashed_no, Smashed_yes, Smashed_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setModule( const QString &v );
@@ -2541,7 +2465,6 @@ class Sheet
   public:
     typedef QList<Sheet> List;
 
-  public:
     void setDescription( const Description &v );
     Description description() const;
     void setPlain( const Plain &v );
@@ -2590,7 +2513,6 @@ class Part
   public:
     typedef QList<Part> List;
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setLibrary( const QString &v );
@@ -2656,10 +2578,8 @@ class Port
   public:
     typedef QList<Port> List;
 
-  public:
     enum DirectionEnum { Direction_nc, Direction_in, Direction_out, Direction_io, Direction_oc, Direction_pwr, Direction_pas, Direction_hiz, Direction_sup, Direction_Invalid };
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setSide( int v );
@@ -2705,7 +2625,6 @@ class Module
   public:
     typedef QList<Module> List;
 
-  public:
     void setName( const QString &v );
     QString name() const;
     void setPrefix( const QString &v );
@@ -2838,10 +2757,8 @@ class Note
   public:
     typedef QList<Note> List;
 
-  public:
     enum SeverityEnum { Severity_info, Severity_warning, Severity_error, Severity_Invalid };
 
-  public:
     void setVersion( double v );
     double version() const;
     void setSeverity( const SeverityEnum &v );
