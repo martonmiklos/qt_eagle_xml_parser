@@ -69,13 +69,13 @@ class Grid
   public:
     enum UnitdistEnum { Unitdist_mic, Unitdist_mm, Unitdist_mil, Unitdist_inch, Unitdist_Invalid };
     enum UnitEnum { Unit_mic, Unit_mm, Unit_mil, Unit_inch, Unit_Invalid };
-    enum StyleEnum { Style_continuous, Style_longdash, Style_shortdash, Style_dashdot, Style_Invalid };
-    enum DisplayEnum { Display_off, Display_value, Display_name, Display_both, Display_Invalid };
+    enum StyleEnum { Style_lines, Style_dots, Style_Invalid };
+    enum DisplayEnum { Display_no, Display_yes, Display_Invalid };
     enum AltunitdistEnum { Altunitdist_mic, Altunitdist_mm, Altunitdist_mil, Altunitdist_inch, Altunitdist_Invalid };
     enum AltunitEnum { Altunit_mic, Altunit_mm, Altunit_mil, Altunit_inch, Altunit_Invalid };
 
-    void setDistance( int v );
-    int distance() const;
+    void setDistance( double v );
+    double distance() const;
     void setUnitdist( const UnitdistEnum &v );
     Grid::UnitdistEnum unitdist() const;
     void setUnit( const UnitEnum &v );
@@ -112,7 +112,7 @@ class Grid
     static Grid::AltunitdistEnum altunitdistEnumFromString( const QString & v, bool *ok = NULL );
     static Grid::AltunitEnum altunitEnumFromString( const QString & v, bool *ok = NULL );
 
-    int mDistance;
+    double mDistance;
     UnitdistEnum mUnitdist;
     UnitEnum mUnit;
     StyleEnum mStyle;
@@ -178,7 +178,7 @@ class Via
   public:
     typedef QList<Via> List;
 
-    enum ShapeEnum { Shape_square, Shape_round, Shape_octagon, Shape_long, Shape_offset, Shape_Invalid };
+    enum ShapeEnum { Shape_square, Shape_round, Shape_octagon, Shape_Invalid };
     enum AlwaysstopEnum { Alwaysstop_no, Alwaysstop_yes, Alwaysstop_Invalid };
 
     void setX( double v );
@@ -1290,7 +1290,7 @@ class Pin
   public:
     typedef QList<Pin> List;
 
-    enum VisibleEnum { Visible_no, Visible_yes, Visible_Invalid };
+    enum VisibleEnum { Visible_off, Visible_pad, Visible_pin, Visible_both, Visible_Invalid };
     enum LengthEnum { Length_point, Length_short, Length_middle, Length_long, Length_Invalid };
     enum DirectionEnum { Direction_nc, Direction_in, Direction_out, Direction_io, Direction_oc, Direction_pwr, Direction_pas, Direction_hiz, Direction_sup, Direction_Invalid };
     enum FunctionEnum { Function_none, Function_dot, Function_clk, Function_dotclk, Function_Invalid };
@@ -1921,8 +1921,8 @@ class Clearance
 
     void setClass( int v );
     int class_() const;
-    void setValue( const QString &v );
-    QString value() const;
+    void setValue( double v );
+    double value() const;
     /**
       Parse XML object from DOM element.
      */
@@ -1931,7 +1931,7 @@ class Clearance
 
   private:
     int mClass;
-    QString mValue;
+    double mValue;
 };
 
 class Class
@@ -2578,7 +2578,7 @@ class Port
   public:
     typedef QList<Port> List;
 
-    enum DirectionEnum { Direction_nc, Direction_in, Direction_out, Direction_io, Direction_oc, Direction_pwr, Direction_pas, Direction_hiz, Direction_sup, Direction_Invalid };
+    enum DirectionEnum { Direction_nc, Direction_in, Direction_out, Direction_io, Direction_oc, Direction_pwr, Direction_pas, Direction_hiz, Direction_Invalid };
 
     void setName( const QString &v );
     QString name() const;

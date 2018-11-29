@@ -146,7 +146,7 @@ Layer Layer::parseElement( const QDomElement &element, bool *ok )
       result.setVisible( visible );
     }
   } else {
-    result.setVisible(visibleEnumFromString("no"));
+    result.setVisible(visibleEnumFromString("yes"));
   }
   if (element.hasAttribute("active"))  {
     ActiveEnum active = activeEnumFromString( element.attribute( "active" ), ok  );
@@ -222,12 +222,12 @@ void Layers::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-void Grid::setDistance( int v )
+void Grid::setDistance( double v )
 {
   mDistance = v;
 }
 
-int Grid::distance() const
+double Grid::distance() const
 {
   return mDistance;
 }
@@ -384,14 +384,10 @@ Grid::StyleEnum Grid::styleEnumFromString( const QString & v, bool *ok )
 {
   if (ok) *ok = true;
 
-  if ( v == "continuous" ) {
-    return Style_continuous;
-  } else if ( v == "longdash" ) {
-    return Style_longdash;
-  } else if ( v == "shortdash" ) {
-    return Style_shortdash;
-  } else if ( v == "dashdot" ) {
-    return Style_dashdot;
+  if ( v == "lines" ) {
+    return Style_lines;
+  } else if ( v == "dots" ) {
+    return Style_dots;
   } else {
     if (ok) *ok = false;
     return Style_Invalid;
@@ -403,10 +399,8 @@ Grid::StyleEnum Grid::styleEnumFromString( const QString & v, bool *ok )
 QString Grid::styleEnumToString( const StyleEnum & v )
 {
   switch( v ) {
-  case Style_continuous: return "continuous";
-  case Style_longdash: return "longdash";
-  case Style_shortdash: return "shortdash";
-  case Style_dashdot: return "dashdot";
+  case Style_lines: return "lines";
+  case Style_dots: return "dots";
   case Style_Invalid:
   default:
     qCritical() << "Unable to serialize a(n) StyleEnum enum because it has invalid value:" << v;
@@ -418,14 +412,10 @@ Grid::DisplayEnum Grid::displayEnumFromString( const QString & v, bool *ok )
 {
   if (ok) *ok = true;
 
-  if ( v == "off" ) {
-    return Display_off;
-  } else if ( v == "value" ) {
-    return Display_value;
-  } else if ( v == "name" ) {
-    return Display_name;
-  } else if ( v == "both" ) {
-    return Display_both;
+  if ( v == "no" ) {
+    return Display_no;
+  } else if ( v == "yes" ) {
+    return Display_yes;
   } else {
     if (ok) *ok = false;
     return Display_Invalid;
@@ -437,10 +427,8 @@ Grid::DisplayEnum Grid::displayEnumFromString( const QString & v, bool *ok )
 QString Grid::displayEnumToString( const DisplayEnum & v )
 {
   switch( v ) {
-  case Display_off: return "off";
-  case Display_value: return "value";
-  case Display_name: return "name";
-  case Display_both: return "both";
+  case Display_no: return "no";
+  case Display_yes: return "yes";
   case Display_Invalid:
   default:
     qCritical() << "Unable to serialize a(n) DisplayEnum enum because it has invalid value:" << v;
@@ -526,7 +514,7 @@ Grid Grid::parseElement( const QDomElement &element, bool *ok )
 
   Grid result = Grid();
 
-  result.setDistance( element.attribute( "distance" ).toInt() );
+  result.setDistance( element.attribute( "distance" ).toDouble() );
   if (element.hasAttribute("unitdist"))  {
     UnitdistEnum unitdist = unitdistEnumFromString( element.attribute( "unitdist" ), ok  );
     if (ok && *ok == false) {
@@ -547,7 +535,7 @@ Grid Grid::parseElement( const QDomElement &element, bool *ok )
       result.setUnit( unit );
     }
   } else {
-    result.setUnit(unitEnumFromString("mm"));
+    result.setUnit(unitEnumFromString(""));
   }
   if (element.hasAttribute("style"))  {
     StyleEnum style = styleEnumFromString( element.attribute( "style" ), ok  );
@@ -558,7 +546,7 @@ Grid Grid::parseElement( const QDomElement &element, bool *ok )
       result.setStyle( style );
     }
   } else {
-    result.setStyle(styleEnumFromString("continuous"));
+    result.setStyle(styleEnumFromString("lines"));
   }
   result.setMultiple( element.attribute( "multiple" ).toInt() );
   if (element.hasAttribute("display"))  {
@@ -570,7 +558,7 @@ Grid Grid::parseElement( const QDomElement &element, bool *ok )
       result.setDisplay( display );
     }
   } else {
-    result.setDisplay(displayEnumFromString("value"));
+    result.setDisplay(displayEnumFromString("no"));
   }
   result.setAltdistance( element.attribute( "altdistance" ).toDouble() );
   if (element.hasAttribute("altunitdist"))  {
@@ -906,10 +894,6 @@ Via::ShapeEnum Via::shapeEnumFromString( const QString & v, bool *ok )
     return Shape_round;
   } else if ( v == "octagon" ) {
     return Shape_octagon;
-  } else if ( v == "long" ) {
-    return Shape_long;
-  } else if ( v == "offset" ) {
-    return Shape_offset;
   } else {
     if (ok) *ok = false;
     return Shape_Invalid;
@@ -924,8 +908,6 @@ QString Via::shapeEnumToString( const ShapeEnum & v )
   case Shape_square: return "square";
   case Shape_round: return "round";
   case Shape_octagon: return "octagon";
-  case Shape_long: return "long";
-  case Shape_offset: return "offset";
   case Shape_Invalid:
   default:
     qCritical() << "Unable to serialize a(n) ShapeEnum enum because it has invalid value:" << v;
@@ -2174,7 +2156,7 @@ Attribute Attribute::parseElement( const QDomElement &element, bool *ok )
       result.setFont( font );
     }
   } else {
-    result.setFont(fontEnumFromString("proportional"));
+    result.setFont(fontEnumFromString(""));
   }
   result.setRatio( element.attribute( "ratio" ).toInt() );
   result.setRot( element.attribute( "rot" ) );
@@ -5558,10 +5540,14 @@ Pin::VisibleEnum Pin::visibleEnumFromString( const QString & v, bool *ok )
 {
   if (ok) *ok = true;
 
-  if ( v == "no" ) {
-    return Visible_no;
-  } else if ( v == "yes" ) {
-    return Visible_yes;
+  if ( v == "off" ) {
+    return Visible_off;
+  } else if ( v == "pad" ) {
+    return Visible_pad;
+  } else if ( v == "pin" ) {
+    return Visible_pin;
+  } else if ( v == "both" ) {
+    return Visible_both;
   } else {
     if (ok) *ok = false;
     return Visible_Invalid;
@@ -5573,8 +5559,10 @@ Pin::VisibleEnum Pin::visibleEnumFromString( const QString & v, bool *ok )
 QString Pin::visibleEnumToString( const VisibleEnum & v )
 {
   switch( v ) {
-  case Visible_no: return "no";
-  case Visible_yes: return "yes";
+  case Visible_off: return "off";
+  case Visible_pad: return "pad";
+  case Visible_pin: return "pin";
+  case Visible_both: return "both";
   case Visible_Invalid:
   default:
     qCritical() << "Unable to serialize a(n) VisibleEnum enum because it has invalid value:" << v;
@@ -5721,7 +5709,7 @@ Pin Pin::parseElement( const QDomElement &element, bool *ok )
       result.setVisible( visible );
     }
   } else {
-    result.setVisible(visibleEnumFromString("no"));
+    result.setVisible(visibleEnumFromString("both"));
   }
   if (element.hasAttribute("length"))  {
     LengthEnum length = lengthEnumFromString( element.attribute( "length" ), ok  );
@@ -7900,12 +7888,12 @@ int Clearance::class_() const
   return mClass;
 }
 
-void Clearance::setValue( const QString &v )
+void Clearance::setValue( double v )
 {
   mValue = v;
 }
 
-QString Clearance::value() const
+double Clearance::value() const
 {
   return mValue;
 }
@@ -7921,7 +7909,7 @@ Clearance Clearance::parseElement( const QDomElement &element, bool *ok )
   Clearance result = Clearance();
 
   result.setClass( element.attribute( "class" ).toInt() );
-  result.setValue( element.attribute( "value" ) );
+  result.setValue( element.attribute( "value" ).toDouble() );
 
   if ( ok ) *ok = true;
   return result;
@@ -10311,8 +10299,6 @@ Port::DirectionEnum Port::directionEnumFromString( const QString & v, bool *ok )
     return Direction_pas;
   } else if ( v == "hiz" ) {
     return Direction_hiz;
-  } else if ( v == "sup" ) {
-    return Direction_sup;
   } else {
     if (ok) *ok = false;
     return Direction_Invalid;
@@ -10332,7 +10318,6 @@ QString Port::directionEnumToString( const DirectionEnum & v )
   case Direction_pwr: return "pwr";
   case Direction_pas: return "pas";
   case Direction_hiz: return "hiz";
-  case Direction_sup: return "sup";
   case Direction_Invalid:
   default:
     qCritical() << "Unable to serialize a(n) DirectionEnum enum because it has invalid value:" << v;

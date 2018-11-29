@@ -7,8 +7,8 @@ QLineF EAGLE_Utils::wire2QLine(const Wire &wire)
 
 QRectF EAGLE_Utils::smdToQRectF(const Smd &smd)
 {
-    return QRectF(smd.x() + (smd.dx() / 2.0),
-                  smd.y() + (smd.dy() / 2.0),
+    return QRectF(smd.x() - (smd.dx() / 2.0),
+                  smd.y() - (smd.dy() / 2.0),
                   smd.dx(),
                   smd.dy());
 }
