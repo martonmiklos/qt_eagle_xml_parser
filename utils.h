@@ -23,24 +23,11 @@ public:
      * SMD pad to be checked
      * @param wire
      * Wire to be checked
-     * @param pt1
-     * Intersection point 1, if there is not any intersection point this argument
-     * will not be changed
-     * @param pt2
-     * Intersection point 2, if there is only one intersection point this argument
-     * will not be changed
-     * @return
-     * Number of intersection points 0, 1 or 2
-     */
-    static int smdWireIntersections(const Smd & smd, const Wire & wire, QPointF & intersectionPt1, QPointF & intersectionPt2);
-
-    /**
-     * @brief painterPathLineIntersections
-     * Get intersection points of an SMD pad and a Wire
-     * @param smd
-     * SMD pad to be checked
-     * @param wire
-     * Wire to be checked
+     * @param internalPoint
+     * if the line has 1 intersction with the stop mask then it will be
+     * set to the line end which is inside the stop mask.
+     * If the line has no intersection or has two intersection
+     * with the stop mask it will not be changed.
      * @param pt1
      * Intersection point 1, if there is not any intersection point this argument
      * will not be change
@@ -52,7 +39,12 @@ public:
      * @return
      * Number of intersection points 0, 1 or 2
      */
-    static int smdStopMaskWireIntersections(const Smd & smd, const Wire & wire, QPointF & intersectionPt1, QPointF & intersectionPt2, qreal stopMaskPercentage);
+    static int smdStopMaskWireIntersections(const Smd & smd,
+                                            const Wire & wire,
+                                            QPointF *internalPoint,
+                                            QPointF *intersectionPt1,
+                                            QPointF *intersectionPt2,
+                                            qreal stopMaskPercentage);
     static qreal wireAngle(const Wire & wire);
 };
 
