@@ -23,7 +23,7 @@ QRectF EAGLE_Utils::smdToQRectF(const Smd &smd)
 
 int EAGLE_Utils::layerIndexFromName(const QString &layerName, Eagle *design)
 {
-    for (Layer layer : design->drawing().layers().layerList()) {
+    for (Layer layer :  *design->drawing()->layers()->layerList()) {
         if (layer.name() == layerName)
             return layer.number();
     }
@@ -136,7 +136,6 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
     painter.drawLine(0, 250, 0, -250);
 
     if (!rectanglePath.intersected(wireContourPath).isEmpty()) {
-        qWarning() << rectanglePath;
         int intersectionCount = 0;
         QLineF centerLine = wire2QLine(wire);
         qreal centerLineAngle = centerLine.angle();
