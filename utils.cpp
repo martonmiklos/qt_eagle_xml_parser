@@ -23,9 +23,9 @@ QRectF EAGLE_Utils::smdToQRectF(const Smd &smd)
 
 int EAGLE_Utils::layerIndexFromName(const QString &layerName, Eagle *design)
 {
-    for (Layer layer :  *design->drawing()->layers()->layerList()) {
-        if (layer.name() == layerName)
-            return layer.number();
+    for (Layer* layer :  *design->drawing()->layers()->layerList()) {
+        if (layer->name() == layerName)
+            return layer->number();
     }
     return -1;
 }
@@ -127,7 +127,7 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
 
     pen.setColor(Qt::blue);
     painter.setPen(pen);
-    painter.drawPath(rectanglePath.intersected(wireContourPath));
+    //painter.drawPath(rectanglePath.intersected(wireContourPath));
 
 
     pen.setColor(Qt::yellow);
@@ -136,12 +136,13 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
     painter.drawLine(0, 250, 0, -250);
 
     if (!rectanglePath.intersected(wireContourPath).isEmpty()) {
+        qWarning() << rectanglePath;
         int intersectionCount = 0;
         QLineF centerLine = wire2QLine(wire);
         qreal centerLineAngle = centerLine.angle();
 
         qreal x = 0.0, y = 0.0;
-        for (int elementIndex = 0; elementIndex<rectanglePath.elementCount() - 1; elementIndex++) {
+        for (int elementIndex = 0; elementIndex<rectanglePath.elementCount(); elementIndex++) {
             QPainterPath::Element e = rectanglePath.elementAt(elementIndex);
             switch (e.type) {
             case QPainterPath::MoveToElement:
@@ -151,9 +152,12 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
             case QPainterPath::LineToElement: {
                 QLineF rectLine = QLineF(x, y, e.x, e.y);
                 if (rectLine.angle() != centerLineAngle) {
-                    QPointF *intersectionPt = intersectionCount == 0 ? intersectionPt1 : intersectionPt2;
-                    QLineF::IntersectType hasInterSection = rectLine.intersect(centerLine, intersectionPt);
+                    QPointF tmp;
+                    QLineF::IntersectType hasInterSection = rectLine.intersect(centerLine, &tmp);
                     if (hasInterSection == QLineF::BoundedIntersection) {
+                        QPointF *intersectionPt = intersectionCount == 0 ? intersectionPt1 : intersectionPt2;
+                        intersectionPt->setX(tmp.x());
+                        intersectionPt->setY(tmp.y());
                         intersectionCount++;
                         if (intersectionCount > 1) {
                             break;
@@ -175,8 +179,7 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
                                                                               intersectionPt1,
                                                                               intersectionPt1,
                                                                               &thirdInterSectionPt,
-                                                                              &curveInterSectionCount
-                                                                              );
+                                                                              &curveInterSectionCount);
                 if (hasInterSection) {
                     // rounded corners can have only 2 intersection points
                     Q_ASSERT(curveInterSectionCount < 3);
@@ -188,9 +191,9 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
                         break;
                     }
                 }
-                elementIndex += 3;
-                x = rectanglePath.elementAt(elementIndex+2).x;
-                y = rectanglePath.elementAt(elementIndex+2).y;
+                elementIndex += 2;
+                x = rectanglePath.elementAt(elementIndex).x;
+                y = rectanglePath.elementAt(elementIndex).y;
                 break;
             }
             case QPainterPath::CurveToDataElement:
@@ -202,7 +205,7 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
         // the user is curious about the internal point
         if (intersectionCount == 1 && internalPoint) {
             QLineF endCheckLine1(centerLine.p1(), smdToQRectF(smd).center());
-            QLineF endCheckLine2(centerLine.p1(), smdToQRectF(smd).center());
+            QLineF endCheckLine2(centerLine.p2(), smdToQRectF(smd).center());
             if (endCheckLine1.length() < endCheckLine2.length()) {
                 *internalPoint = centerLine.p1();
             } else if (endCheckLine1.length() > endCheckLine2.length()) {
@@ -211,13 +214,63 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
                 // wire length equal -> return with two points
                 if (intersectionPt2)
                     *intersectionPt2 = *intersectionPt1;
-                if (intersectionCount != 2)
-                    intersectionCount = 2;
+                intersectionCount = 2;
+                internalPoint = nullptr;
             }
 
             pen.setColor(Qt::magenta);
             painter.setPen(pen);
-            painter.drawEllipse(*internalPoint, 1, 1);
+            painter.drawEllipse(*internalPoint, 0.1, 0.1);
+
+            QLineF internalPart(*internalPoint, *intersectionPt1);
+            internalPart.setLength(internalPart.length() + wire.width() / 2.0);
+
+            QLineF externalPart(*internalPoint == centerLine.p1() ? centerLine.p2() : centerLine.p1(),
+                                *intersectionPt1);
+            externalPart.setLength(internalPart.length() - wire.width() / 2.0);
+
+            pen.setColor(Qt::white);
+            painter.setPen(pen);
+            painter.drawLine(internalPart);
+
+            pen.setColor(Qt::darkCyan);
+            painter.setPen(pen);
+            painter.drawLine(externalPart);
+        }
+
+        pen.setColor(Qt::lightGray);
+        painter.setPen(pen);
+        if (intersectionCount >= 1) {
+            painter.drawEllipse(*intersectionPt1, 0.1, 0.1);
+        }
+        if (intersectionCount == 2) {
+            painter.drawEllipse(*intersectionPt2, 0.1, 0.1);
+
+            QLineF interSectP1Check(centerLine.p1(), *intersectionPt1);
+            QLineF interSectP2Check(centerLine.p2(), *intersectionPt1);
+            QLineF externalPart1(interSectP1Check.length() < interSectP2Check.length() ?
+                                     centerLine.p1() : centerLine.p2(),
+                                 *intersectionPt1);
+            externalPart1.setLength(externalPart1.length() - wire.width() / 2.0);
+
+            QLineF externalPart2(centerLine.p1() == externalPart1.p1() ?
+                                     centerLine.p2() : centerLine.p1(),
+                                 *intersectionPt2);
+            externalPart2.setLength(externalPart2.length() - wire.width() / 2.0);
+
+            QLineF internalPart(externalPart1.p2(), externalPart2.p2());
+
+            pen.setColor(Qt::white);
+            painter.setPen(pen);
+            painter.drawLine(internalPart);
+
+            pen.setColor(Qt::darkCyan);
+            painter.setPen(pen);
+            painter.drawLine(externalPart1);
+
+            pen.setColor(Qt::darkCyan);
+            painter.setPen(pen);
+            painter.drawLine(externalPart2);
         }
     }
 
@@ -228,6 +281,11 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
 
     return 0;
 }
+
+/*QList<Wire> EAGLE_Utils::sliceWires(const Wire &wire, const QPointF &internalPoint, const QPointF &intersectionPt1, const QPointF &intersectionPt2, qreal interSectionKeepOutInMm)
+{
+
+}*/
 
 qreal EAGLE_Utils::wireAngle(const Wire &wire)
 {

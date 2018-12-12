@@ -45,6 +45,40 @@ public:
                                             QPointF *intersectionPt1,
                                             QPointF *intersectionPt2,
                                             qreal stopMaskPercentage);
+
+
+    enum SeparationStartLineEnd {
+        End1,
+        End2
+    };
+    /**
+     * @brief splitWire
+     * This function will break the wire specified in the wire parameter
+     * into 2 or 3 wires (depending on the separation points).
+     * The returned wires will have the same parameters (layer, width, etc.)
+     *
+     * @param wire
+     * The wire to be separated
+     *
+     * @param separationPoints
+     * The wire is going to be separated in interSectionKeepOutInMm distance
+     * from these these points in the direction closer to the startEnd
+     *
+     * @param interSectionKeepOutInMm
+     * The separation will happen on the line closer to the startEnd with
+     * this distance from the separationPoints
+     *
+     * @param startEnd
+     * Specifies which end of the line should the separation started
+     *
+     * @return
+     * A list of the separated wires.
+     * The returned wires will have the same parameters (layer, width, etc.)
+     */
+    static QList<Wire> splitWire(const Wire & wire,
+                                  const QList<QPointF> separationPoints,
+                                  qreal interSectionKeepOutInMm,
+                                  SeparationStartLineEnd startEnd = End1);
     static qreal wireAngle(const Wire & wire);
 };
 

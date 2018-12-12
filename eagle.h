@@ -11,19 +11,24 @@
 class Layer
 {
   public:
-    typedef QList<Layer> List;
+    typedef QList<Layer*> List;
 
     enum VisibleEnum { Visible_no, Visible_yes, Visible_Invalid };
     enum ActiveEnum { Active_no, Active_yes, Active_Invalid };
 
-    void setNumber( int v );
+    Layer();
+    ~Layer();
+    void setNumber( const int v );
     int number() const;
+    bool numberSet() const;
     void setName( const QString &v );
     QString name() const;
-    void setColor( int v );
+    void setColor( const int v );
     int color() const;
-    void setFill( int v );
+    bool colorSet() const;
+    void setFill( const int v );
     int fill() const;
+    bool fillSet() const;
     void setVisible( const VisibleEnum &v );
     Layer::VisibleEnum visible() const;
     void setActive( const ActiveEnum &v );
@@ -33,7 +38,7 @@ class Layer
     /**
       Parse XML object from DOM element.
      */
-    static Layer parseElement( const QDomElement &element, bool *ok );
+    static Layer *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -41,9 +46,12 @@ class Layer
     static Layer::ActiveEnum activeEnumFromString( const QString & v, bool *ok = NULL );
 
     int mNumber;
+    bool mNumber_set;
     QString mName;
     int mColor;
+    bool mColor_set;
     int mFill;
+    bool mFill_set;
     VisibleEnum mVisible;
     ActiveEnum mActive;
 };
@@ -51,13 +59,15 @@ class Layer
 class Layers
 {
   public:
-    void addLayer( const Layer &v );
+    Layers();
+    ~Layers();
+    void addLayer( Layer* v );
     void setLayerList( const Layer::List &v );
     Layer::List *layerList();
     /**
       Parse XML object from DOM element.
      */
-    static Layers parseElement( const QDomElement &element, bool *ok );
+    static Layers *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -74,20 +84,25 @@ class Grid
     enum AltunitdistEnum { Altunitdist_mic, Altunitdist_mm, Altunitdist_mil, Altunitdist_inch, Altunitdist_Invalid };
     enum AltunitEnum { Altunit_mic, Altunit_mm, Altunit_mil, Altunit_inch, Altunit_Invalid };
 
-    void setDistance( double v );
+    Grid();
+    ~Grid();
+    void setDistance( const double v );
     double distance() const;
+    bool distanceSet() const;
     void setUnitdist( const UnitdistEnum &v );
     Grid::UnitdistEnum unitdist() const;
     void setUnit( const UnitEnum &v );
     Grid::UnitEnum unit() const;
     void setStyle( const StyleEnum &v );
     Grid::StyleEnum style() const;
-    void setMultiple( int v );
+    void setMultiple( const int v );
     int multiple() const;
+    bool multipleSet() const;
     void setDisplay( const DisplayEnum &v );
     Grid::DisplayEnum display() const;
-    void setAltdistance( double v );
+    void setAltdistance( const double v );
     double altdistance() const;
+    bool altdistanceSet() const;
     void setAltunitdist( const AltunitdistEnum &v );
     Grid::AltunitdistEnum altunitdist() const;
     void setAltunit( const AltunitEnum &v );
@@ -101,7 +116,7 @@ class Grid
     /**
       Parse XML object from DOM element.
      */
-    static Grid parseElement( const QDomElement &element, bool *ok );
+    static Grid *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -113,12 +128,15 @@ class Grid
     static Grid::AltunitEnum altunitEnumFromString( const QString & v, bool *ok = NULL );
 
     double mDistance;
+    bool mDistance_set;
     UnitdistEnum mUnitdist;
     UnitEnum mUnit;
     StyleEnum mStyle;
     int mMultiple;
+    bool mMultiple_set;
     DisplayEnum mDisplay;
     double mAltdistance;
+    bool mAltdistance_set;
     AltunitdistEnum mAltunitdist;
     AltunitEnum mAltunit;
 };
@@ -126,12 +144,14 @@ class Grid
 class Setting
 {
   public:
-    typedef QList<Setting> List;
+    typedef QList<Setting*> List;
 
     enum AlwaysvectorfontEnum { Alwaysvectorfont_no, Alwaysvectorfont_yes, Alwaysvectorfont_Invalid };
     enum VerticaltextEnum { Verticaltext_up, Verticaltext_down, Verticaltext_Invalid };
     enum KeepoldvectorfontEnum { Keepoldvectorfont_no, Keepoldvectorfont_yes, Keepoldvectorfont_Invalid };
 
+    Setting();
+    ~Setting();
     void setAlwaysvectorfont( const AlwaysvectorfontEnum &v );
     Setting::AlwaysvectorfontEnum alwaysvectorfont() const;
     void setVerticaltext( const VerticaltextEnum &v );
@@ -144,7 +164,7 @@ class Setting
     /**
       Parse XML object from DOM element.
      */
-    static Setting parseElement( const QDomElement &element, bool *ok );
+    static Setting *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -160,37 +180,85 @@ class Setting
 class Settings
 {
   public:
-    void addSetting( const Setting &v );
+    Settings();
+    ~Settings();
+    void addSetting( Setting* v );
     void setSettingList( const Setting::List &v );
     Setting::List *settingList();
     /**
       Parse XML object from DOM element.
      */
-    static Settings parseElement( const QDomElement &element, bool *ok );
+    static Settings *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     Setting::List mSettingList;
 };
 
+class Mfgpreviewcolor
+{
+  public:
+    typedef QList<Mfgpreviewcolor*> List;
+
+    Mfgpreviewcolor();
+    ~Mfgpreviewcolor();
+    void setName( const QString &v );
+    QString name() const;
+    void setColor( const QString &v );
+    QString color() const;
+    /**
+      Parse XML object from DOM element.
+     */
+    static Mfgpreviewcolor *parseElement( const QDomElement &element, bool *ok );
+    void writeElement( QXmlStreamWriter &xml ) const;
+
+  private:
+    QString mName;
+    QString mColor;
+};
+
+class Mfgpreviewcolors
+{
+  public:
+    Mfgpreviewcolors();
+    ~Mfgpreviewcolors();
+    void addMfgpreviewcolor( Mfgpreviewcolor* v );
+    void setMfgpreviewcolorList( const Mfgpreviewcolor::List &v );
+    Mfgpreviewcolor::List *mfgpreviewcolorList();
+    /**
+      Parse XML object from DOM element.
+     */
+    static Mfgpreviewcolors *parseElement( const QDomElement &element, bool *ok );
+    void writeElement( QXmlStreamWriter &xml ) const;
+
+  private:
+    Mfgpreviewcolor::List mMfgpreviewcolorList;
+};
+
 class Via
 {
   public:
-    typedef QList<Via> List;
+    typedef QList<Via*> List;
 
     enum ShapeEnum { Shape_square, Shape_round, Shape_octagon, Shape_Invalid };
     enum AlwaysstopEnum { Alwaysstop_no, Alwaysstop_yes, Alwaysstop_Invalid };
 
-    void setX( double v );
+    Via();
+    ~Via();
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
+    bool ySet() const;
     void setExtent( const QString &v );
     QString extent() const;
-    void setDrill( double v );
+    void setDrill( const double v );
     double drill() const;
-    void setDiameter( double v );
+    bool drillSet() const;
+    void setDiameter( const double v );
     double diameter() const;
+    bool diameterSet() const;
     void setShape( const ShapeEnum &v );
     Via::ShapeEnum shape() const;
     void setAlwaysstop( const AlwaysstopEnum &v );
@@ -200,7 +268,7 @@ class Via
     /**
       Parse XML object from DOM element.
      */
-    static Via parseElement( const QDomElement &element, bool *ok );
+    static Via *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -208,10 +276,14 @@ class Via
     static Via::AlwaysstopEnum alwaysstopEnumFromString( const QString & v, bool *ok = NULL );
 
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     QString mExtent;
     double mDrill;
+    bool mDrill_set;
     double mDiameter;
+    bool mDiameter_set;
     ShapeEnum mShape;
     AlwaysstopEnum mAlwaysstop;
 };
@@ -219,10 +291,12 @@ class Via
 class Contactref
 {
   public:
-    typedef QList<Contactref> List;
+    typedef QList<Contactref*> List;
 
     enum RouteEnum { Route_all, Route_any, Route_Invalid };
 
+    Contactref();
+    ~Contactref();
     void setElement( const QString &v );
     QString element() const;
     void setPad( const QString &v );
@@ -235,7 +309,7 @@ class Contactref
     /**
       Parse XML object from DOM element.
      */
-    static Contactref parseElement( const QDomElement &element, bool *ok );
+    static Contactref *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -250,52 +324,67 @@ class Contactref
 class Vertex
 {
   public:
-    typedef QList<Vertex> List;
+    typedef QList<Vertex*> List;
 
-    void setX( double v );
+    Vertex();
+    ~Vertex();
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
-    void setCurve( double v );
+    bool ySet() const;
+    void setCurve( const double v );
     double curve() const;
+    bool curveSet() const;
     /**
       Parse XML object from DOM element.
      */
-    static Vertex parseElement( const QDomElement &element, bool *ok );
+    static Vertex *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     double mCurve;
+    bool mCurve_set;
 };
 
 class Polygon
 {
   public:
-    typedef QList<Polygon> List;
+    typedef QList<Polygon*> List;
 
     enum PourEnum { Pour_solid, Pour_hatch, Pour_cutout, Pour_Invalid };
     enum OrphansEnum { Orphans_no, Orphans_yes, Orphans_Invalid };
     enum ThermalsEnum { Thermals_no, Thermals_yes, Thermals_Invalid };
 
-    void setWidth( double v );
+    Polygon();
+    ~Polygon();
+    void setWidth( const double v );
     double width() const;
-    void setLayer( int v );
+    bool widthSet() const;
+    void setLayer( const int v );
     int layer() const;
-    void setSpacing( double v );
+    bool layerSet() const;
+    void setSpacing( const double v );
     double spacing() const;
+    bool spacingSet() const;
     void setPour( const PourEnum &v );
     Polygon::PourEnum pour() const;
-    void setIsolate( double v );
+    void setIsolate( const double v );
     double isolate() const;
+    bool isolateSet() const;
     void setOrphans( const OrphansEnum &v );
     Polygon::OrphansEnum orphans() const;
     void setThermals( const ThermalsEnum &v );
     Polygon::ThermalsEnum thermals() const;
-    void setRank( int v );
+    void setRank( const int v );
     int rank() const;
-    void addVertex( const Vertex &v );
+    bool rankSet() const;
+    void addVertex( Vertex* v );
     void setVertexList( const Vertex::List &v );
     Vertex::List *vertexList();
     static QString pourEnumToString( const PourEnum & v );
@@ -304,7 +393,7 @@ class Polygon
     /**
       Parse XML object from DOM element.
      */
-    static Polygon parseElement( const QDomElement &element, bool *ok );
+    static Polygon *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -313,42 +402,56 @@ class Polygon
     static Polygon::ThermalsEnum thermalsEnumFromString( const QString & v, bool *ok = NULL );
 
     double mWidth;
+    bool mWidth_set;
     int mLayer;
+    bool mLayer_set;
     double mSpacing;
+    bool mSpacing_set;
     PourEnum mPour;
     double mIsolate;
+    bool mIsolate_set;
     OrphansEnum mOrphans;
     ThermalsEnum mThermals;
     int mRank;
+    bool mRank_set;
     Vertex::List mVertexList;
 };
 
 class Wire
 {
   public:
-    typedef QList<Wire> List;
+    typedef QList<Wire*> List;
 
     enum StyleEnum { Style_continuous, Style_longdash, Style_shortdash, Style_dashdot, Style_Invalid };
     enum CapEnum { Cap_flat, Cap_round, Cap_Invalid };
 
-    void setX1( double v );
+    Wire();
+    ~Wire();
+    void setX1( const double v );
     double x1() const;
-    void setY1( double v );
+    bool x1Set() const;
+    void setY1( const double v );
     double y1() const;
-    void setX2( double v );
+    bool y1Set() const;
+    void setX2( const double v );
     double x2() const;
-    void setY2( double v );
+    bool x2Set() const;
+    void setY2( const double v );
     double y2() const;
-    void setWidth( double v );
+    bool y2Set() const;
+    void setWidth( const double v );
     double width() const;
-    void setLayer( int v );
+    bool widthSet() const;
+    void setLayer( const int v );
     int layer() const;
+    bool layerSet() const;
     void setExtent( const QString &v );
     QString extent() const;
     void setStyle( const StyleEnum &v );
     Wire::StyleEnum style() const;
-    void setCurve( double v );
+    void setCurve( const double v );
     double curve() const;
+    bool curveSet() const;
     void setCap( const CapEnum &v );
     Wire::CapEnum cap() const;
     static QString styleEnumToString( const StyleEnum & v );
@@ -356,7 +459,7 @@ class Wire
     /**
       Parse XML object from DOM element.
      */
-    static Wire parseElement( const QDomElement &element, bool *ok );
+    static Wire *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -364,47 +467,57 @@ class Wire
     static Wire::CapEnum capEnumFromString( const QString & v, bool *ok = NULL );
 
     double mX1;
+    bool mX1_set;
     double mY1;
+    bool mY1_set;
     double mX2;
+    bool mX2_set;
     double mY2;
+    bool mY2_set;
     double mWidth;
+    bool mWidth_set;
     int mLayer;
+    bool mLayer_set;
     QString mExtent;
     StyleEnum mStyle;
     double mCurve;
+    bool mCurve_set;
     CapEnum mCap;
 };
 
 class Signal
 {
   public:
-    typedef QList<Signal> List;
+    typedef QList<Signal*> List;
 
     enum AirwireshiddenEnum { Airwireshidden_no, Airwireshidden_yes, Airwireshidden_Invalid };
 
+    Signal();
+    ~Signal();
     void setName( const QString &v );
     QString name() const;
-    void setClass( int v );
+    void setClass( const int v );
     int class_() const;
+    bool classSet() const;
     void setAirwireshidden( const AirwireshiddenEnum &v );
     Signal::AirwireshiddenEnum airwireshidden() const;
-    void addContactref( const Contactref &v );
+    void addContactref( Contactref* v );
     void setContactrefList( const Contactref::List &v );
     Contactref::List *contactrefList();
-    void addPolygon( const Polygon &v );
+    void addPolygon( Polygon* v );
     void setPolygonList( const Polygon::List &v );
     Polygon::List *polygonList();
-    void addWire( const Wire &v );
+    void addWire( Wire* v );
     void setWireList( const Wire::List &v );
     Wire::List *wireList();
-    void addVia( const Via &v );
+    void addVia( Via* v );
     void setViaList( const Via::List &v );
     Via::List *viaList();
     static QString airwireshiddenEnumToString( const AirwireshiddenEnum & v );
     /**
       Parse XML object from DOM element.
      */
-    static Signal parseElement( const QDomElement &element, bool *ok );
+    static Signal *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -412,6 +525,7 @@ class Signal
 
     QString mName;
     int mClass;
+    bool mClass_set;
     AirwireshiddenEnum mAirwireshidden;
     Contactref::List mContactrefList;
     Polygon::List mPolygonList;
@@ -422,13 +536,15 @@ class Signal
 class Signals
 {
   public:
-    void addSignal( const Signal &v );
+    Signals();
+    ~Signals();
+    void addSignal( Signal* v );
     void setSignalList( const Signal::List &v );
     Signal::List *signalList();
     /**
       Parse XML object from DOM element.
      */
-    static Signals parseElement( const QDomElement &element, bool *ok );
+    static Signals *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -438,29 +554,36 @@ class Signals
 class Attribute
 {
   public:
-    typedef QList<Attribute> List;
+    typedef QList<Attribute*> List;
 
     enum FontEnum { Font_vector, Font_proportional, Font_fixed, Font_Invalid };
     enum DisplayEnum { Display_off, Display_value, Display_name, Display_both, Display_Invalid };
     enum ConstantEnum { Constant_no, Constant_yes, Constant_Invalid };
     enum AlignEnum { Align_bottom_left, Align_bottom_center, Align_bottom_right, Align_center_left, Align_center, Align_center_right, Align_top_left, Align_top_center, Align_top_right, Align_Invalid };
 
+    Attribute();
+    ~Attribute();
     void setName( const QString &v );
     QString name() const;
     void setValue( const QString &v );
     QString value() const;
-    void setX( double v );
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
-    void setSize( double v );
+    bool ySet() const;
+    void setSize( const double v );
     double size() const;
-    void setLayer( int v );
+    bool sizeSet() const;
+    void setLayer( const int v );
     int layer() const;
+    bool layerSet() const;
     void setFont( const FontEnum &v );
     Attribute::FontEnum font() const;
-    void setRatio( int v );
+    void setRatio( const int v );
     int ratio() const;
+    bool ratioSet() const;
     void setRot( const QString &v );
     QString rot() const;
     void setDisplay( const DisplayEnum &v );
@@ -476,7 +599,7 @@ class Attribute
     /**
       Parse XML object from DOM element.
      */
-    static Attribute parseElement( const QDomElement &element, bool *ok );
+    static Attribute *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -488,11 +611,16 @@ class Attribute
     QString mName;
     QString mValue;
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     double mSize;
+    bool mSize_set;
     int mLayer;
+    bool mLayer_set;
     FontEnum mFont;
     int mRatio;
+    bool mRatio_set;
     QString mRot;
     DisplayEnum mDisplay;
     ConstantEnum mConstant;
@@ -502,10 +630,12 @@ class Attribute
 class Variant
 {
   public:
-    typedef QList<Variant> List;
+    typedef QList<Variant*> List;
 
     enum PopulateEnum { Populate_no, Populate_yes, Populate_Invalid };
 
+    Variant();
+    ~Variant();
     void setName( const QString &v );
     QString name() const;
     void setPopulate( const PopulateEnum &v );
@@ -518,7 +648,7 @@ class Variant
     /**
       Parse XML object from DOM element.
      */
-    static Variant parseElement( const QDomElement &element, bool *ok );
+    static Variant *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -533,12 +663,14 @@ class Variant
 class Element
 {
   public:
-    typedef QList<Element> List;
+    typedef QList<Element*> List;
 
     enum LockedEnum { Locked_no, Locked_yes, Locked_Invalid };
     enum PopulateEnum { Populate_no, Populate_yes, Populate_Invalid };
     enum SmashedEnum { Smashed_no, Smashed_yes, Smashed_Invalid };
 
+    Element();
+    ~Element();
     void setName( const QString &v );
     QString name() const;
     void setLibrary( const QString &v );
@@ -551,10 +683,12 @@ class Element
     QString package3dUrn() const;
     void setValue( const QString &v );
     QString value() const;
-    void setX( double v );
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
+    bool ySet() const;
     void setLocked( const LockedEnum &v );
     Element::LockedEnum locked() const;
     void setPopulate( const PopulateEnum &v );
@@ -563,10 +697,10 @@ class Element
     Element::SmashedEnum smashed() const;
     void setRot( const QString &v );
     QString rot() const;
-    void addAttribute( const Attribute &v );
+    void addAttribute( Attribute* v );
     void setAttributeList( const Attribute::List &v );
     Attribute::List *attributeList();
-    void addVariant( const Variant &v );
+    void addVariant( Variant* v );
     void setVariantList( const Variant::List &v );
     Variant::List *variantList();
     static QString lockedEnumToString( const LockedEnum & v );
@@ -575,7 +709,7 @@ class Element
     /**
       Parse XML object from DOM element.
      */
-    static Element parseElement( const QDomElement &element, bool *ok );
+    static Element *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -590,7 +724,9 @@ class Element
     QString mPackage3dUrn;
     QString mValue;
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     LockedEnum mLocked;
     PopulateEnum mPopulate;
     SmashedEnum mSmashed;
@@ -602,13 +738,15 @@ class Element
 class Elements
 {
   public:
-    void addElement( const Element &v );
+    Elements();
+    ~Elements();
+    void addElement( Element* v );
     void setElementList( const Element::List &v );
     Element::List *elementList();
     /**
       Parse XML object from DOM element.
      */
-    static Elements parseElement( const QDomElement &element, bool *ok );
+    static Elements *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -618,8 +756,10 @@ class Elements
 class Param
 {
   public:
-    typedef QList<Param> List;
+    typedef QList<Param*> List;
 
+    Param();
+    ~Param();
     void setName( const QString &v );
     QString name() const;
     void setValue( const QString &v );
@@ -627,7 +767,7 @@ class Param
     /**
       Parse XML object from DOM element.
      */
-    static Param parseElement( const QDomElement &element, bool *ok );
+    static Param *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -638,24 +778,26 @@ class Param
 class Pass
 {
   public:
-    typedef QList<Pass> List;
+    typedef QList<Pass*> List;
 
     enum ActiveEnum { Active_no, Active_yes, Active_Invalid };
 
+    Pass();
+    ~Pass();
     void setName( const QString &v );
     QString name() const;
     void setRefer( const QString &v );
     QString refer() const;
     void setActive( const ActiveEnum &v );
     Pass::ActiveEnum active() const;
-    void addParam( const Param &v );
+    void addParam( Param* v );
     void setParamList( const Param::List &v );
     Param::List *paramList();
     static QString activeEnumToString( const ActiveEnum & v );
     /**
       Parse XML object from DOM element.
      */
-    static Pass parseElement( const QDomElement &element, bool *ok );
+    static Pass *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -670,13 +812,15 @@ class Pass
 class Autorouter
 {
   public:
-    void addPass( const Pass &v );
+    Autorouter();
+    ~Autorouter();
+    void addPass( Pass* v );
     void setPassList( const Pass::List &v );
     Pass::List *passList();
     /**
       Parse XML object from DOM element.
      */
-    static Autorouter parseElement( const QDomElement &element, bool *ok );
+    static Autorouter *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -686,8 +830,10 @@ class Autorouter
 class Description
 {
   public:
-    typedef QList<Description> List;
+    typedef QList<Description*> List;
 
+    Description();
+    ~Description();
     void setLanguage( const QString &v );
     QString language() const;
     void setValue( const QString &v );
@@ -695,7 +841,7 @@ class Description
     /**
       Parse XML object from DOM element.
      */
-    static Description parseElement( const QDomElement &element, bool *ok );
+    static Description *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -706,18 +852,20 @@ class Description
 class Designrules
 {
   public:
+    Designrules();
+    ~Designrules();
     void setName( const QString &v );
     QString name() const;
-    void addDescription( const Description &v );
+    void addDescription( Description* v );
     void setDescriptionList( const Description::List &v );
     Description::List *descriptionList();
-    void addParam( const Param &v );
+    void addParam( Param* v );
     void setParamList( const Param::List &v );
     Param::List *paramList();
     /**
       Parse XML object from DOM element.
      */
-    static Designrules parseElement( const QDomElement &element, bool *ok );
+    static Designrules *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -729,6 +877,8 @@ class Designrules
 class Fusionsync
 {
   public:
+    Fusionsync();
+    ~Fusionsync();
     void setHuburn( const QString &v );
     QString huburn() const;
     void setProjecturn( const QString &v );
@@ -744,7 +894,7 @@ class Fusionsync
     /**
       Parse XML object from DOM element.
      */
-    static Fusionsync parseElement( const QDomElement &element, bool *ok );
+    static Fusionsync *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -759,29 +909,37 @@ class Fusionsync
 class Text
 {
   public:
-    typedef QList<Text> List;
+    typedef QList<Text*> List;
 
     enum FontEnum { Font_vector, Font_proportional, Font_fixed, Font_Invalid };
     enum AlignEnum { Align_bottom_left, Align_bottom_center, Align_bottom_right, Align_center_left, Align_center, Align_center_right, Align_top_left, Align_top_center, Align_top_right, Align_Invalid };
 
-    void setX( double v );
+    Text();
+    ~Text();
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
-    void setSize( double v );
+    bool ySet() const;
+    void setSize( const double v );
     double size() const;
-    void setLayer( int v );
+    bool sizeSet() const;
+    void setLayer( const int v );
     int layer() const;
+    bool layerSet() const;
     void setFont( const FontEnum &v );
     Text::FontEnum font() const;
-    void setRatio( int v );
+    void setRatio( const int v );
     int ratio() const;
+    bool ratioSet() const;
     void setRot( const QString &v );
     QString rot() const;
     void setAlign( const AlignEnum &v );
     Text::AlignEnum align() const;
-    void setDistance( int v );
+    void setDistance( const int v );
     int distance() const;
+    bool distanceSet() const;
     void setValue( const QString &v );
     QString value() const;
     static QString fontEnumToString( const FontEnum & v );
@@ -789,7 +947,7 @@ class Text
     /**
       Parse XML object from DOM element.
      */
-    static Text parseElement( const QDomElement &element, bool *ok );
+    static Text *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -797,58 +955,80 @@ class Text
     static Text::AlignEnum alignEnumFromString( const QString & v, bool *ok = NULL );
 
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     double mSize;
+    bool mSize_set;
     int mLayer;
+    bool mLayer_set;
     FontEnum mFont;
     int mRatio;
+    bool mRatio_set;
     QString mRot;
     AlignEnum mAlign;
     int mDistance;
+    bool mDistance_set;
     QString mValue;
 };
 
 class Dimension
 {
   public:
-    typedef QList<Dimension> List;
+    typedef QList<Dimension*> List;
 
     enum DtypeEnum { Dtype_parallel, Dtype_horizontal, Dtype_vertical, Dtype_radius, Dtype_diameter, Dtype_leader, Dtype_Invalid };
     enum UnitEnum { Unit_mic, Unit_mm, Unit_mil, Unit_inch, Unit_Invalid };
     enum VisibleEnum { Visible_no, Visible_yes, Visible_Invalid };
 
-    void setX1( double v );
+    Dimension();
+    ~Dimension();
+    void setX1( const double v );
     double x1() const;
-    void setY1( double v );
+    bool x1Set() const;
+    void setY1( const double v );
     double y1() const;
-    void setX2( double v );
+    bool y1Set() const;
+    void setX2( const double v );
     double x2() const;
-    void setY2( double v );
+    bool x2Set() const;
+    void setY2( const double v );
     double y2() const;
-    void setX3( double v );
+    bool y2Set() const;
+    void setX3( const double v );
     double x3() const;
-    void setY3( double v );
+    bool x3Set() const;
+    void setY3( const double v );
     double y3() const;
-    void setLayer( int v );
+    bool y3Set() const;
+    void setLayer( const int v );
     int layer() const;
+    bool layerSet() const;
     void setDtype( const DtypeEnum &v );
     Dimension::DtypeEnum dtype() const;
-    void setWidth( double v );
+    void setWidth( const double v );
     double width() const;
-    void setExtwidth( double v );
+    bool widthSet() const;
+    void setExtwidth( const double v );
     double extwidth() const;
-    void setExtlength( double v );
+    bool extwidthSet() const;
+    void setExtlength( const double v );
     double extlength() const;
-    void setExtoffset( double v );
+    bool extlengthSet() const;
+    void setExtoffset( const double v );
     double extoffset() const;
-    void setTextsize( double v );
+    bool extoffsetSet() const;
+    void setTextsize( const double v );
     double textsize() const;
-    void setTextratio( int v );
+    bool textsizeSet() const;
+    void setTextratio( const int v );
     int textratio() const;
+    bool textratioSet() const;
     void setUnit( const UnitEnum &v );
     Dimension::UnitEnum unit() const;
-    void setPrecision( int v );
+    void setPrecision( const int v );
     int precision() const;
+    bool precisionSet() const;
     void setVisible( const VisibleEnum &v );
     Dimension::VisibleEnum visible() const;
     static QString dtypeEnumToString( const DtypeEnum & v );
@@ -857,7 +1037,7 @@ class Dimension
     /**
       Parse XML object from DOM element.
      */
-    static Dimension parseElement( const QDomElement &element, bool *ok );
+    static Dimension *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -866,109 +1046,156 @@ class Dimension
     static Dimension::VisibleEnum visibleEnumFromString( const QString & v, bool *ok = NULL );
 
     double mX1;
+    bool mX1_set;
     double mY1;
+    bool mY1_set;
     double mX2;
+    bool mX2_set;
     double mY2;
+    bool mY2_set;
     double mX3;
+    bool mX3_set;
     double mY3;
+    bool mY3_set;
     int mLayer;
+    bool mLayer_set;
     DtypeEnum mDtype;
     double mWidth;
+    bool mWidth_set;
     double mExtwidth;
+    bool mExtwidth_set;
     double mExtlength;
+    bool mExtlength_set;
     double mExtoffset;
+    bool mExtoffset_set;
     double mTextsize;
+    bool mTextsize_set;
     int mTextratio;
+    bool mTextratio_set;
     UnitEnum mUnit;
     int mPrecision;
+    bool mPrecision_set;
     VisibleEnum mVisible;
 };
 
 class Circle
 {
   public:
-    typedef QList<Circle> List;
+    typedef QList<Circle*> List;
 
-    void setX( double v );
+    Circle();
+    ~Circle();
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
-    void setRadius( double v );
+    bool ySet() const;
+    void setRadius( const double v );
     double radius() const;
-    void setWidth( double v );
+    bool radiusSet() const;
+    void setWidth( const double v );
     double width() const;
-    void setLayer( int v );
+    bool widthSet() const;
+    void setLayer( const int v );
     int layer() const;
+    bool layerSet() const;
     /**
       Parse XML object from DOM element.
      */
-    static Circle parseElement( const QDomElement &element, bool *ok );
+    static Circle *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     double mRadius;
+    bool mRadius_set;
     double mWidth;
+    bool mWidth_set;
     int mLayer;
+    bool mLayer_set;
 };
 
 class Rectangle
 {
   public:
-    typedef QList<Rectangle> List;
+    typedef QList<Rectangle*> List;
 
-    void setX1( double v );
+    Rectangle();
+    ~Rectangle();
+    void setX1( const double v );
     double x1() const;
-    void setY1( double v );
+    bool x1Set() const;
+    void setY1( const double v );
     double y1() const;
-    void setX2( double v );
+    bool y1Set() const;
+    void setX2( const double v );
     double x2() const;
-    void setY2( double v );
+    bool x2Set() const;
+    void setY2( const double v );
     double y2() const;
-    void setLayer( int v );
+    bool y2Set() const;
+    void setLayer( const int v );
     int layer() const;
+    bool layerSet() const;
     void setRot( const QString &v );
     QString rot() const;
     /**
       Parse XML object from DOM element.
      */
-    static Rectangle parseElement( const QDomElement &element, bool *ok );
+    static Rectangle *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     double mX1;
+    bool mX1_set;
     double mY1;
+    bool mY1_set;
     double mX2;
+    bool mX2_set;
     double mY2;
+    bool mY2_set;
     int mLayer;
+    bool mLayer_set;
     QString mRot;
 };
 
 class Frame
 {
   public:
-    typedef QList<Frame> List;
+    typedef QList<Frame*> List;
 
     enum BorderLeftEnum { BorderLeft_no, BorderLeft_yes, BorderLeft_Invalid };
     enum BorderTopEnum { BorderTop_no, BorderTop_yes, BorderTop_Invalid };
     enum BorderRightEnum { BorderRight_no, BorderRight_yes, BorderRight_Invalid };
     enum BorderBottomEnum { BorderBottom_no, BorderBottom_yes, BorderBottom_Invalid };
 
-    void setX1( double v );
+    Frame();
+    ~Frame();
+    void setX1( const double v );
     double x1() const;
-    void setY1( double v );
+    bool x1Set() const;
+    void setY1( const double v );
     double y1() const;
-    void setX2( double v );
+    bool y1Set() const;
+    void setX2( const double v );
     double x2() const;
-    void setY2( double v );
+    bool x2Set() const;
+    void setY2( const double v );
     double y2() const;
-    void setColumns( int v );
+    bool y2Set() const;
+    void setColumns( const int v );
     int columns() const;
-    void setRows( int v );
+    bool columnsSet() const;
+    void setRows( const int v );
     int rows() const;
-    void setLayer( int v );
+    bool rowsSet() const;
+    void setLayer( const int v );
     int layer() const;
+    bool layerSet() const;
     void setBorderLeft( const BorderLeftEnum &v );
     Frame::BorderLeftEnum borderLeft() const;
     void setBorderTop( const BorderTopEnum &v );
@@ -984,7 +1211,7 @@ class Frame
     /**
       Parse XML object from DOM element.
      */
-    static Frame parseElement( const QDomElement &element, bool *ok );
+    static Frame *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -994,12 +1221,19 @@ class Frame
     static Frame::BorderBottomEnum borderBottomEnumFromString( const QString & v, bool *ok = NULL );
 
     double mX1;
+    bool mX1_set;
     double mY1;
+    bool mY1_set;
     double mX2;
+    bool mX2_set;
     double mY2;
+    bool mY2_set;
     int mColumns;
+    bool mColumns_set;
     int mRows;
+    bool mRows_set;
     int mLayer;
+    bool mLayer_set;
     BorderLeftEnum mBorderLeft;
     BorderTopEnum mBorderTop;
     BorderRightEnum mBorderRight;
@@ -1009,57 +1243,67 @@ class Frame
 class Hole
 {
   public:
-    typedef QList<Hole> List;
+    typedef QList<Hole*> List;
 
-    void setX( double v );
+    Hole();
+    ~Hole();
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
-    void setDrill( double v );
+    bool ySet() const;
+    void setDrill( const double v );
     double drill() const;
+    bool drillSet() const;
     /**
       Parse XML object from DOM element.
      */
-    static Hole parseElement( const QDomElement &element, bool *ok );
+    static Hole *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     double mDrill;
+    bool mDrill_set;
 };
 
 class Plain
 {
   public:
-    void addPolygon( const Polygon &v );
+    Plain();
+    ~Plain();
+    void addPolygon( Polygon* v );
     void setPolygonList( const Polygon::List &v );
     Polygon::List *polygonList();
-    void addWire( const Wire &v );
+    void addWire( Wire* v );
     void setWireList( const Wire::List &v );
     Wire::List *wireList();
-    void addText( const Text &v );
+    void addText( Text* v );
     void setTextList( const Text::List &v );
     Text::List *textList();
-    void addDimension( const Dimension &v );
+    void addDimension( Dimension* v );
     void setDimensionList( const Dimension::List &v );
     Dimension::List *dimensionList();
-    void addCircle( const Circle &v );
+    void addCircle( Circle* v );
     void setCircleList( const Circle::List &v );
     Circle::List *circleList();
-    void addRectangle( const Rectangle &v );
+    void addRectangle( Rectangle* v );
     void setRectangleList( const Rectangle::List &v );
     Rectangle::List *rectangleList();
-    void addFrame( const Frame &v );
+    void addFrame( Frame* v );
     void setFrameList( const Frame::List &v );
     Frame::List *frameList();
-    void addHole( const Hole &v );
+    void addHole( Hole* v );
     void setHoleList( const Hole::List &v );
     Hole::List *holeList();
     /**
       Parse XML object from DOM element.
      */
-    static Plain parseElement( const QDomElement &element, bool *ok );
+    static Plain *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1076,23 +1320,29 @@ class Plain
 class Pad
 {
   public:
-    typedef QList<Pad> List;
+    typedef QList<Pad*> List;
 
     enum ShapeEnum { Shape_square, Shape_round, Shape_octagon, Shape_long, Shape_offset, Shape_Invalid };
     enum StopEnum { Stop_no, Stop_yes, Stop_Invalid };
     enum ThermalsEnum { Thermals_no, Thermals_yes, Thermals_Invalid };
     enum FirstEnum { First_no, First_yes, First_Invalid };
 
+    Pad();
+    ~Pad();
     void setName( const QString &v );
     QString name() const;
-    void setX( double v );
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
-    void setDrill( double v );
+    bool ySet() const;
+    void setDrill( const double v );
     double drill() const;
-    void setDiameter( double v );
+    bool drillSet() const;
+    void setDiameter( const double v );
     double diameter() const;
+    bool diameterSet() const;
     void setShape( const ShapeEnum &v );
     Pad::ShapeEnum shape() const;
     void setRot( const QString &v );
@@ -1110,7 +1360,7 @@ class Pad
     /**
       Parse XML object from DOM element.
      */
-    static Pad parseElement( const QDomElement &element, bool *ok );
+    static Pad *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1121,9 +1371,13 @@ class Pad
 
     QString mName;
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     double mDrill;
+    bool mDrill_set;
     double mDiameter;
+    bool mDiameter_set;
     ShapeEnum mShape;
     QString mRot;
     StopEnum mStop;
@@ -1134,26 +1388,34 @@ class Pad
 class Smd
 {
   public:
-    typedef QList<Smd> List;
+    typedef QList<Smd*> List;
 
     enum StopEnum { Stop_no, Stop_yes, Stop_Invalid };
     enum ThermalsEnum { Thermals_no, Thermals_yes, Thermals_Invalid };
     enum CreamEnum { Cream_no, Cream_yes, Cream_Invalid };
 
+    Smd();
+    ~Smd();
     void setName( const QString &v );
     QString name() const;
-    void setX( double v );
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
-    void setDx( double v );
+    bool ySet() const;
+    void setDx( const double v );
     double dx() const;
-    void setDy( double v );
+    bool dxSet() const;
+    void setDy( const double v );
     double dy() const;
-    void setLayer( int v );
+    bool dySet() const;
+    void setLayer( const int v );
     int layer() const;
-    void setRoundness( int v );
+    bool layerSet() const;
+    void setRoundness( const int v );
     int roundness() const;
+    bool roundnessSet() const;
     void setRot( const QString &v );
     QString rot() const;
     void setStop( const StopEnum &v );
@@ -1168,7 +1430,7 @@ class Smd
     /**
       Parse XML object from DOM element.
      */
-    static Smd parseElement( const QDomElement &element, bool *ok );
+    static Smd *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1178,11 +1440,17 @@ class Smd
 
     QString mName;
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     double mDx;
+    bool mDx_set;
     double mDy;
+    bool mDy_set;
     int mLayer;
+    bool mLayer_set;
     int mRoundness;
+    bool mRoundness_set;
     QString mRot;
     StopEnum mStop;
     ThermalsEnum mThermals;
@@ -1192,59 +1460,62 @@ class Smd
 class Package
 {
   public:
-    typedef QList<Package> List;
+    typedef QList<Package*> List;
 
     enum LocallyModifiedEnum { LocallyModified_no, LocallyModified_yes, LocallyModified_Invalid };
     enum LibraryLocallyModifiedEnum { LibraryLocallyModified_no, LibraryLocallyModified_yes, LibraryLocallyModified_Invalid };
 
+    Package();
+    ~Package();
     void setName( const QString &v );
     QString name() const;
     void setUrn( const QString &v );
     QString urn() const;
     void setLocallyModified( const LocallyModifiedEnum &v );
     Package::LocallyModifiedEnum locallyModified() const;
-    void setLibraryVersion( int v );
+    void setLibraryVersion( const int v );
     int libraryVersion() const;
+    bool libraryVersionSet() const;
     void setLibraryLocallyModified( const LibraryLocallyModifiedEnum &v );
     Package::LibraryLocallyModifiedEnum libraryLocallyModified() const;
-    void addPolygon( const Polygon &v );
+    void addPolygon( Polygon* v );
     void setPolygonList( const Polygon::List &v );
     Polygon::List *polygonList();
-    void addWire( const Wire &v );
+    void addWire( Wire* v );
     void setWireList( const Wire::List &v );
     Wire::List *wireList();
-    void addText( const Text &v );
+    void addText( Text* v );
     void setTextList( const Text::List &v );
     Text::List *textList();
-    void addDimension( const Dimension &v );
+    void addDimension( Dimension* v );
     void setDimensionList( const Dimension::List &v );
     Dimension::List *dimensionList();
-    void addCircle( const Circle &v );
+    void addCircle( Circle* v );
     void setCircleList( const Circle::List &v );
     Circle::List *circleList();
-    void addRectangle( const Rectangle &v );
+    void addRectangle( Rectangle* v );
     void setRectangleList( const Rectangle::List &v );
     Rectangle::List *rectangleList();
-    void addFrame( const Frame &v );
+    void addFrame( Frame* v );
     void setFrameList( const Frame::List &v );
     Frame::List *frameList();
-    void addHole( const Hole &v );
+    void addHole( Hole* v );
     void setHoleList( const Hole::List &v );
     Hole::List *holeList();
-    void addPad( const Pad &v );
+    void addPad( Pad* v );
     void setPadList( const Pad::List &v );
     Pad::List *padList();
-    void addSmd( const Smd &v );
+    void addSmd( Smd* v );
     void setSmdList( const Smd::List &v );
     Smd::List *smdList();
-    void setDescription( const Description &v );
+    void setDescription( Description *v );
     Description *description();
     static QString locallyModifiedEnumToString( const LocallyModifiedEnum & v );
     static QString libraryLocallyModifiedEnumToString( const LibraryLocallyModifiedEnum & v );
     /**
       Parse XML object from DOM element.
      */
-    static Package parseElement( const QDomElement &element, bool *ok );
+    static Package *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1255,6 +1526,7 @@ class Package
     QString mUrn;
     LocallyModifiedEnum mLocallyModified;
     int mLibraryVersion;
+    bool mLibraryVersion_set;
     LibraryLocallyModifiedEnum mLibraryLocallyModified;
     Polygon::List mPolygonList;
     Wire::List mWireList;
@@ -1266,41 +1538,149 @@ class Package
     Hole::List mHoleList;
     Pad::List mPadList;
     Smd::List mSmdList;
-    Description mDescription;
+    Description *mDescription;
 };
 
 class Packages
 {
   public:
-    void addPackage( const Package &v );
+    Packages();
+    ~Packages();
+    void addPackage( Package* v );
     void setPackageList( const Package::List &v );
     Package::List *packageList();
     /**
       Parse XML object from DOM element.
      */
-    static Packages parseElement( const QDomElement &element, bool *ok );
+    static Packages *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     Package::List mPackageList;
 };
 
+class Packageinstance
+{
+  public:
+    typedef QList<Packageinstance*> List;
+
+    Packageinstance();
+    ~Packageinstance();
+    void setName( const QString &v );
+    QString name() const;
+    /**
+      Parse XML object from DOM element.
+     */
+    static Packageinstance *parseElement( const QDomElement &element, bool *ok );
+    void writeElement( QXmlStreamWriter &xml ) const;
+
+  private:
+    QString mName;
+};
+
+class Packageinstances
+{
+  public:
+    Packageinstances();
+    ~Packageinstances();
+    void addPackageinstance( Packageinstance* v );
+    void setPackageinstanceList( const Packageinstance::List &v );
+    Packageinstance::List *packageinstanceList();
+    /**
+      Parse XML object from DOM element.
+     */
+    static Packageinstances *parseElement( const QDomElement &element, bool *ok );
+    void writeElement( QXmlStreamWriter &xml ) const;
+
+  private:
+    Packageinstance::List mPackageinstanceList;
+};
+
+class Package3d
+{
+  public:
+    typedef QList<Package3d*> List;
+
+    enum TypeEnum { Type_model, Type_box, Type_Invalid };
+    enum LibraryLocallyModifiedEnum { LibraryLocallyModified_no, LibraryLocallyModified_yes, LibraryLocallyModified_Invalid };
+
+    Package3d();
+    ~Package3d();
+    void setName( const QString &v );
+    QString name() const;
+    void setUrn( const QString &v );
+    QString urn() const;
+    void setType( const TypeEnum &v );
+    Package3d::TypeEnum type() const;
+    void setLibraryVersion( const int v );
+    int libraryVersion() const;
+    bool libraryVersionSet() const;
+    void setLibraryLocallyModified( const LibraryLocallyModifiedEnum &v );
+    Package3d::LibraryLocallyModifiedEnum libraryLocallyModified() const;
+    void setDescription( Description *v );
+    Description *description();
+    void setPackageinstances( Packageinstances *v );
+    Packageinstances *packageinstances();
+    static QString typeEnumToString( const TypeEnum & v );
+    static QString libraryLocallyModifiedEnumToString( const LibraryLocallyModifiedEnum & v );
+    /**
+      Parse XML object from DOM element.
+     */
+    static Package3d *parseElement( const QDomElement &element, bool *ok );
+    void writeElement( QXmlStreamWriter &xml ) const;
+
+  private:
+    static Package3d::TypeEnum typeEnumFromString( const QString & v, bool *ok = NULL );
+    static Package3d::LibraryLocallyModifiedEnum libraryLocallyModifiedEnumFromString( const QString & v, bool *ok = NULL );
+
+    QString mName;
+    QString mUrn;
+    TypeEnum mType;
+    int mLibraryVersion;
+    bool mLibraryVersion_set;
+    LibraryLocallyModifiedEnum mLibraryLocallyModified;
+    Description *mDescription;
+    Packageinstances *mPackageinstances;
+};
+
+class Packages3d
+{
+  public:
+    Packages3d();
+    ~Packages3d();
+    void addPackage3d( Package3d* v );
+    void setPackage3dList( const Package3d::List &v );
+    Package3d::List *package3dList();
+    /**
+      Parse XML object from DOM element.
+     */
+    static Packages3d *parseElement( const QDomElement &element, bool *ok );
+    void writeElement( QXmlStreamWriter &xml ) const;
+
+  private:
+    Package3d::List mPackage3dList;
+};
+
 class Pin
 {
   public:
-    typedef QList<Pin> List;
+    typedef QList<Pin*> List;
 
     enum VisibleEnum { Visible_off, Visible_pad, Visible_pin, Visible_both, Visible_Invalid };
     enum LengthEnum { Length_point, Length_short, Length_middle, Length_long, Length_Invalid };
     enum DirectionEnum { Direction_nc, Direction_in, Direction_out, Direction_io, Direction_oc, Direction_pwr, Direction_pas, Direction_hiz, Direction_sup, Direction_Invalid };
     enum FunctionEnum { Function_none, Function_dot, Function_clk, Function_dotclk, Function_Invalid };
 
+    Pin();
+    ~Pin();
     void setName( const QString &v );
     QString name() const;
-    void setX( double v );
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
+    bool ySet() const;
     void setVisible( const VisibleEnum &v );
     Pin::VisibleEnum visible() const;
     void setLength( const LengthEnum &v );
@@ -1309,8 +1689,9 @@ class Pin
     Pin::DirectionEnum direction() const;
     void setFunction( const FunctionEnum &v );
     Pin::FunctionEnum function() const;
-    void setSwaplevel( int v );
+    void setSwaplevel( const int v );
     int swaplevel() const;
+    bool swaplevelSet() const;
     void setRot( const QString &v );
     QString rot() const;
     static QString visibleEnumToString( const VisibleEnum & v );
@@ -1320,7 +1701,7 @@ class Pin
     /**
       Parse XML object from DOM element.
      */
-    static Pin parseElement( const QDomElement &element, bool *ok );
+    static Pin *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1331,65 +1712,71 @@ class Pin
 
     QString mName;
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     VisibleEnum mVisible;
     LengthEnum mLength;
     DirectionEnum mDirection;
     FunctionEnum mFunction;
     int mSwaplevel;
+    bool mSwaplevel_set;
     QString mRot;
 };
 
 class Symbol
 {
   public:
-    typedef QList<Symbol> List;
+    typedef QList<Symbol*> List;
 
     enum LocallyModifiedEnum { LocallyModified_no, LocallyModified_yes, LocallyModified_Invalid };
     enum LibraryLocallyModifiedEnum { LibraryLocallyModified_no, LibraryLocallyModified_yes, LibraryLocallyModified_Invalid };
 
+    Symbol();
+    ~Symbol();
     void setName( const QString &v );
     QString name() const;
     void setUrn( const QString &v );
     QString urn() const;
     void setLocallyModified( const LocallyModifiedEnum &v );
     Symbol::LocallyModifiedEnum locallyModified() const;
-    void setLibraryVersion( int v );
+    void setLibraryVersion( const int v );
     int libraryVersion() const;
+    bool libraryVersionSet() const;
     void setLibraryLocallyModified( const LibraryLocallyModifiedEnum &v );
     Symbol::LibraryLocallyModifiedEnum libraryLocallyModified() const;
-    void addPolygon( const Polygon &v );
+    void addPolygon( Polygon* v );
     void setPolygonList( const Polygon::List &v );
     Polygon::List *polygonList();
-    void addWire( const Wire &v );
+    void addWire( Wire* v );
     void setWireList( const Wire::List &v );
     Wire::List *wireList();
-    void addText( const Text &v );
+    void addText( Text* v );
     void setTextList( const Text::List &v );
     Text::List *textList();
-    void addDimension( const Dimension &v );
+    void addDimension( Dimension* v );
     void setDimensionList( const Dimension::List &v );
     Dimension::List *dimensionList();
-    void addPin( const Pin &v );
+    void addPin( Pin* v );
     void setPinList( const Pin::List &v );
     Pin::List *pinList();
-    void addCircle( const Circle &v );
+    void addCircle( Circle* v );
     void setCircleList( const Circle::List &v );
     Circle::List *circleList();
-    void addRectangle( const Rectangle &v );
+    void addRectangle( Rectangle* v );
     void setRectangleList( const Rectangle::List &v );
     Rectangle::List *rectangleList();
-    void addFrame( const Frame &v );
+    void addFrame( Frame* v );
     void setFrameList( const Frame::List &v );
     Frame::List *frameList();
-    void setDescription( const Description &v );
+    void setDescription( Description *v );
     Description *description();
     static QString locallyModifiedEnumToString( const LocallyModifiedEnum & v );
     static QString libraryLocallyModifiedEnumToString( const LibraryLocallyModifiedEnum & v );
     /**
       Parse XML object from DOM element.
      */
-    static Symbol parseElement( const QDomElement &element, bool *ok );
+    static Symbol *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1400,6 +1787,7 @@ class Symbol
     QString mUrn;
     LocallyModifiedEnum mLocallyModified;
     int mLibraryVersion;
+    bool mLibraryVersion_set;
     LibraryLocallyModifiedEnum mLibraryLocallyModified;
     Polygon::List mPolygonList;
     Wire::List mWireList;
@@ -1409,19 +1797,21 @@ class Symbol
     Circle::List mCircleList;
     Rectangle::List mRectangleList;
     Frame::List mFrameList;
-    Description mDescription;
+    Description *mDescription;
 };
 
 class Symbols
 {
   public:
-    void addSymbol( const Symbol &v );
+    Symbols();
+    ~Symbols();
+    void addSymbol( Symbol* v );
     void setSymbolList( const Symbol::List &v );
     Symbol::List *symbolList();
     /**
       Parse XML object from DOM element.
      */
-    static Symbols parseElement( const QDomElement &element, bool *ok );
+    static Symbols *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1431,27 +1821,32 @@ class Symbols
 class Gate
 {
   public:
-    typedef QList<Gate> List;
+    typedef QList<Gate*> List;
 
     enum AddlevelEnum { Addlevel_must, Addlevel_can, Addlevel_next, Addlevel_request, Addlevel_always, Addlevel_Invalid };
 
+    Gate();
+    ~Gate();
     void setName( const QString &v );
     QString name() const;
     void setSymbol( const QString &v );
     QString symbol() const;
-    void setX( double v );
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
+    bool ySet() const;
     void setAddlevel( const AddlevelEnum &v );
     Gate::AddlevelEnum addlevel() const;
-    void setSwaplevel( int v );
+    void setSwaplevel( const int v );
     int swaplevel() const;
+    bool swaplevelSet() const;
     static QString addlevelEnumToString( const AddlevelEnum & v );
     /**
       Parse XML object from DOM element.
      */
-    static Gate parseElement( const QDomElement &element, bool *ok );
+    static Gate *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1460,21 +1855,26 @@ class Gate
     QString mName;
     QString mSymbol;
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     AddlevelEnum mAddlevel;
     int mSwaplevel;
+    bool mSwaplevel_set;
 };
 
 class Gates
 {
   public:
-    void addGate( const Gate &v );
+    Gates();
+    ~Gates();
+    void addGate( Gate* v );
     void setGateList( const Gate::List &v );
     Gate::List *gateList();
     /**
       Parse XML object from DOM element.
      */
-    static Gates parseElement( const QDomElement &element, bool *ok );
+    static Gates *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1484,10 +1884,12 @@ class Gates
 class Connect
 {
   public:
-    typedef QList<Connect> List;
+    typedef QList<Connect*> List;
 
     enum RouteEnum { Route_all, Route_any, Route_Invalid };
 
+    Connect();
+    ~Connect();
     void setGate( const QString &v );
     QString gate() const;
     void setPin( const QString &v );
@@ -1500,7 +1902,7 @@ class Connect
     /**
       Parse XML object from DOM element.
      */
-    static Connect parseElement( const QDomElement &element, bool *ok );
+    static Connect *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1515,13 +1917,15 @@ class Connect
 class Connects
 {
   public:
-    void addConnect( const Connect &v );
+    Connects();
+    ~Connects();
+    void addConnect( Connect* v );
     void setConnectList( const Connect::List &v );
     Connect::List *connectList();
     /**
       Parse XML object from DOM element.
      */
-    static Connects parseElement( const QDomElement &element, bool *ok );
+    static Connects *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1531,14 +1935,16 @@ class Connects
 class Package3dinstance
 {
   public:
-    typedef QList<Package3dinstance> List;
+    typedef QList<Package3dinstance*> List;
 
+    Package3dinstance();
+    ~Package3dinstance();
     void setPackage3dUrn( const QString &v );
     QString package3dUrn() const;
     /**
       Parse XML object from DOM element.
      */
-    static Package3dinstance parseElement( const QDomElement &element, bool *ok );
+    static Package3dinstance *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1548,13 +1954,15 @@ class Package3dinstance
 class Package3dinstances
 {
   public:
-    void addPackage3dinstance( const Package3dinstance &v );
+    Package3dinstances();
+    ~Package3dinstances();
+    void addPackage3dinstance( Package3dinstance* v );
     void setPackage3dinstanceList( const Package3dinstance::List &v );
     Package3dinstance::List *package3dinstanceList();
     /**
       Parse XML object from DOM element.
      */
-    static Package3dinstances parseElement( const QDomElement &element, bool *ok );
+    static Package3dinstances *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1564,17 +1972,19 @@ class Package3dinstances
 class Technology
 {
   public:
-    typedef QList<Technology> List;
+    typedef QList<Technology*> List;
 
+    Technology();
+    ~Technology();
     void setName( const QString &v );
     QString name() const;
-    void addAttribute( const Attribute &v );
+    void addAttribute( Attribute* v );
     void setAttributeList( const Attribute::List &v );
     Attribute::List *attributeList();
     /**
       Parse XML object from DOM element.
      */
-    static Technology parseElement( const QDomElement &element, bool *ok );
+    static Technology *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1585,13 +1995,15 @@ class Technology
 class Technologies
 {
   public:
-    void addTechnology( const Technology &v );
+    Technologies();
+    ~Technologies();
+    void addTechnology( Technology* v );
     void setTechnologyList( const Technology::List &v );
     Technology::List *technologyList();
     /**
       Parse XML object from DOM element.
      */
-    static Technologies parseElement( const QDomElement &element, bool *ok );
+    static Technologies *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1601,42 +2013,46 @@ class Technologies
 class Device
 {
   public:
-    typedef QList<Device> List;
+    typedef QList<Device*> List;
 
+    Device();
+    ~Device();
     void setName( const QString &v );
     QString name() const;
     void setPackage( const QString &v );
     QString package() const;
-    void setConnects( const Connects &v );
+    void setConnects( Connects *v );
     Connects *connects();
-    void setPackage3dinstances( const Package3dinstances &v );
+    void setPackage3dinstances( Package3dinstances *v );
     Package3dinstances *package3dinstances();
-    void setTechnologies( const Technologies &v );
+    void setTechnologies( Technologies *v );
     Technologies *technologies();
     /**
       Parse XML object from DOM element.
      */
-    static Device parseElement( const QDomElement &element, bool *ok );
+    static Device *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     QString mName;
     QString mPackage;
-    Connects mConnects;
-    Package3dinstances mPackage3dinstances;
-    Technologies mTechnologies;
+    Connects *mConnects;
+    Package3dinstances *mPackage3dinstances;
+    Technologies *mTechnologies;
 };
 
 class Devices
 {
   public:
-    void addDevice( const Device &v );
+    Devices();
+    ~Devices();
+    void addDevice( Device* v );
     void setDeviceList( const Device::List &v );
     Device::List *deviceList();
     /**
       Parse XML object from DOM element.
      */
-    static Devices parseElement( const QDomElement &element, bool *ok );
+    static Devices *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1646,8 +2062,10 @@ class Devices
 class Pinmap
 {
   public:
-    typedef QList<Pinmap> List;
+    typedef QList<Pinmap*> List;
 
+    Pinmap();
+    ~Pinmap();
     void setGate( const QString &v );
     QString gate() const;
     void setPin( const QString &v );
@@ -1657,7 +2075,7 @@ class Pinmap
     /**
       Parse XML object from DOM element.
      */
-    static Pinmap parseElement( const QDomElement &element, bool *ok );
+    static Pinmap *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1672,13 +2090,15 @@ class Pinmapping
     enum IsusermapEnum { Isusermap_no, Isusermap_yes, Isusermap_Invalid };
     enum IddevicewideEnum { Iddevicewide_no, Iddevicewide_yes, Iddevicewide_Invalid };
 
+    Pinmapping();
+    ~Pinmapping();
     void setIsusermap( const IsusermapEnum &v );
     Pinmapping::IsusermapEnum isusermap() const;
     void setIddevicewide( const IddevicewideEnum &v );
     Pinmapping::IddevicewideEnum iddevicewide() const;
     void setSpiceprefix( const QString &v );
     QString spiceprefix() const;
-    void addPinmap( const Pinmap &v );
+    void addPinmap( Pinmap* v );
     void setPinmapList( const Pinmap::List &v );
     Pinmap::List *pinmapList();
     static QString isusermapEnumToString( const IsusermapEnum & v );
@@ -1686,7 +2106,7 @@ class Pinmapping
     /**
       Parse XML object from DOM element.
      */
-    static Pinmapping parseElement( const QDomElement &element, bool *ok );
+    static Pinmapping *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1702,6 +2122,8 @@ class Pinmapping
 class Model
 {
   public:
+    Model();
+    ~Model();
     void setName( const QString &v );
     QString name() const;
     void setValue( const QString &v );
@@ -1709,7 +2131,7 @@ class Model
     /**
       Parse XML object from DOM element.
      */
-    static Model parseElement( const QDomElement &element, bool *ok );
+    static Model *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1720,30 +2142,34 @@ class Model
 class Spice
 {
   public:
-    void setPinmapping( const Pinmapping &v );
+    Spice();
+    ~Spice();
+    void setPinmapping( Pinmapping *v );
     Pinmapping *pinmapping();
-    void setModel( const Model &v );
+    void setModel( Model *v );
     Model *model();
     /**
       Parse XML object from DOM element.
      */
-    static Spice parseElement( const QDomElement &element, bool *ok );
+    static Spice *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
-    Pinmapping mPinmapping;
-    Model mModel;
+    Pinmapping *mPinmapping;
+    Model *mModel;
 };
 
 class Deviceset
 {
   public:
-    typedef QList<Deviceset> List;
+    typedef QList<Deviceset*> List;
 
     enum LocallyModifiedEnum { LocallyModified_no, LocallyModified_yes, LocallyModified_Invalid };
     enum UservalueEnum { Uservalue_no, Uservalue_yes, Uservalue_Invalid };
     enum LibraryLocallyModifiedEnum { LibraryLocallyModified_no, LibraryLocallyModified_yes, LibraryLocallyModified_Invalid };
 
+    Deviceset();
+    ~Deviceset();
     void setName( const QString &v );
     QString name() const;
     void setUrn( const QString &v );
@@ -1754,17 +2180,18 @@ class Deviceset
     QString prefix() const;
     void setUservalue( const UservalueEnum &v );
     Deviceset::UservalueEnum uservalue() const;
-    void setLibraryVersion( int v );
+    void setLibraryVersion( const int v );
     int libraryVersion() const;
+    bool libraryVersionSet() const;
     void setLibraryLocallyModified( const LibraryLocallyModifiedEnum &v );
     Deviceset::LibraryLocallyModifiedEnum libraryLocallyModified() const;
-    void setDescription( const Description &v );
+    void setDescription( Description *v );
     Description *description();
-    void setGates( const Gates &v );
+    void setGates( Gates *v );
     Gates *gates();
-    void setDevices( const Devices &v );
+    void setDevices( Devices *v );
     Devices *devices();
-    void setSpice( const Spice &v );
+    void setSpice( Spice *v );
     Spice *spice();
     static QString locallyModifiedEnumToString( const LocallyModifiedEnum & v );
     static QString uservalueEnumToString( const UservalueEnum & v );
@@ -1772,7 +2199,7 @@ class Deviceset
     /**
       Parse XML object from DOM element.
      */
-    static Deviceset parseElement( const QDomElement &element, bool *ok );
+    static Deviceset *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1786,23 +2213,26 @@ class Deviceset
     QString mPrefix;
     UservalueEnum mUservalue;
     int mLibraryVersion;
+    bool mLibraryVersion_set;
     LibraryLocallyModifiedEnum mLibraryLocallyModified;
-    Description mDescription;
-    Gates mGates;
-    Devices mDevices;
-    Spice mSpice;
+    Description *mDescription;
+    Gates *mGates;
+    Devices *mDevices;
+    Spice *mSpice;
 };
 
 class Devicesets
 {
   public:
-    void addDeviceset( const Deviceset &v );
+    Devicesets();
+    ~Devicesets();
+    void addDeviceset( Deviceset* v );
     void setDevicesetList( const Deviceset::List &v );
     Deviceset::List *devicesetList();
     /**
       Parse XML object from DOM element.
      */
-    static Devicesets parseElement( const QDomElement &element, bool *ok );
+    static Devicesets *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1812,45 +2242,52 @@ class Devicesets
 class Library
 {
   public:
-    typedef QList<Library> List;
+    typedef QList<Library*> List;
 
+    Library();
+    ~Library();
     void setName( const QString &v );
     QString name() const;
     void setUrn( const QString &v );
     QString urn() const;
-    void setDescription( const Description &v );
+    void setDescription( Description *v );
     Description *description();
-    void setPackages( const Packages &v );
+    void setPackages( Packages *v );
     Packages *packages();
-    void setSymbols( const Symbols &v );
+    void setPackages3d( Packages3d *v );
+    Packages3d *packages3d();
+    void setSymbols( Symbols *v );
     Symbols *symbols();
-    void setDevicesets( const Devicesets &v );
+    void setDevicesets( Devicesets *v );
     Devicesets *devicesets();
     /**
       Parse XML object from DOM element.
      */
-    static Library parseElement( const QDomElement &element, bool *ok );
+    static Library *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     QString mName;
     QString mUrn;
-    Description mDescription;
-    Packages mPackages;
-    Symbols mSymbols;
-    Devicesets mDevicesets;
+    Description *mDescription;
+    Packages *mPackages;
+    Packages3d *mPackages3d;
+    Symbols *mSymbols;
+    Devicesets *mDevicesets;
 };
 
 class Libraries
 {
   public:
-    void addLibrary( const Library &v );
+    Libraries();
+    ~Libraries();
+    void addLibrary( Library* v );
     void setLibraryList( const Library::List &v );
     Library::List *libraryList();
     /**
       Parse XML object from DOM element.
      */
-    static Libraries parseElement( const QDomElement &element, bool *ok );
+    static Libraries *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1860,13 +2297,15 @@ class Libraries
 class Attributes
 {
   public:
-    void addAttribute( const Attribute &v );
+    Attributes();
+    ~Attributes();
+    void addAttribute( Attribute* v );
     void setAttributeList( const Attribute::List &v );
     Attribute::List *attributeList();
     /**
       Parse XML object from DOM element.
      */
-    static Attributes parseElement( const QDomElement &element, bool *ok );
+    static Attributes *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1876,10 +2315,12 @@ class Attributes
 class Variantdef
 {
   public:
-    typedef QList<Variantdef> List;
+    typedef QList<Variantdef*> List;
 
     enum CurrentEnum { Current_no, Current_yes, Current_Invalid };
 
+    Variantdef();
+    ~Variantdef();
     void setName( const QString &v );
     QString name() const;
     void setCurrent( const CurrentEnum &v );
@@ -1888,7 +2329,7 @@ class Variantdef
     /**
       Parse XML object from DOM element.
      */
-    static Variantdef parseElement( const QDomElement &element, bool *ok );
+    static Variantdef *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1901,13 +2342,15 @@ class Variantdef
 class Variantdefs
 {
   public:
-    void addVariantdef( const Variantdef &v );
+    Variantdefs();
+    ~Variantdefs();
+    void addVariantdef( Variantdef* v );
     void setVariantdefList( const Variantdef::List &v );
     Variantdef::List *variantdefList();
     /**
       Parse XML object from DOM element.
      */
-    static Variantdefs parseElement( const QDomElement &element, bool *ok );
+    static Variantdefs *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1917,63 +2360,79 @@ class Variantdefs
 class Clearance
 {
   public:
-    typedef QList<Clearance> List;
+    typedef QList<Clearance*> List;
 
-    void setClass( int v );
+    Clearance();
+    ~Clearance();
+    void setClass( const int v );
     int class_() const;
-    void setValue( double v );
+    bool classSet() const;
+    void setValue( const double v );
     double value() const;
+    bool valueSet() const;
     /**
       Parse XML object from DOM element.
      */
-    static Clearance parseElement( const QDomElement &element, bool *ok );
+    static Clearance *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     int mClass;
+    bool mClass_set;
     double mValue;
+    bool mValue_set;
 };
 
 class Class
 {
   public:
-    typedef QList<Class> List;
+    typedef QList<Class*> List;
 
-    void setNumber( int v );
+    Class();
+    ~Class();
+    void setNumber( const int v );
     int number() const;
+    bool numberSet() const;
     void setName( const QString &v );
     QString name() const;
-    void setWidth( double v );
+    void setWidth( const double v );
     double width() const;
-    void setDrill( double v );
+    bool widthSet() const;
+    void setDrill( const double v );
     double drill() const;
-    void addClearance( const Clearance &v );
+    bool drillSet() const;
+    void addClearance( Clearance* v );
     void setClearanceList( const Clearance::List &v );
     Clearance::List *clearanceList();
     /**
       Parse XML object from DOM element.
      */
-    static Class parseElement( const QDomElement &element, bool *ok );
+    static Class *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     int mNumber;
+    bool mNumber_set;
     QString mName;
     double mWidth;
+    bool mWidth_set;
     double mDrill;
+    bool mDrill_set;
     Clearance::List mClearanceList;
 };
 
 class Classes
 {
   public:
-    void addClass( const Class &v );
+    Classes();
+    ~Classes();
+    void addClass( Class* v );
     void setClassList( const Class::List &v );
     Class::List *classList();
     /**
       Parse XML object from DOM element.
      */
-    static Classes parseElement( const QDomElement &element, bool *ok );
+    static Classes *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -1983,14 +2442,16 @@ class Classes
 class Approved
 {
   public:
-    typedef QList<Approved> List;
+    typedef QList<Approved*> List;
 
+    Approved();
+    ~Approved();
     void setHash( const QString &v );
     QString hash() const;
     /**
       Parse XML object from DOM element.
      */
-    static Approved parseElement( const QDomElement &element, bool *ok );
+    static Approved *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2000,13 +2461,15 @@ class Approved
 class Errors
 {
   public:
-    void addApproved( const Approved &v );
+    Errors();
+    ~Errors();
+    void addApproved( Approved* v );
     void setApprovedList( const Approved::List &v );
     Approved::List *approvedList();
     /**
       Parse XML object from DOM element.
      */
-    static Errors parseElement( const QDomElement &element, bool *ok );
+    static Errors *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2016,59 +2479,68 @@ class Errors
 class Board
 {
   public:
-    void setLimitedwidth( double v );
+    Board();
+    ~Board();
+    void setLimitedwidth( const double v );
     double limitedwidth() const;
-    void setDescription( const Description &v );
+    bool limitedwidthSet() const;
+    void setDescription( Description *v );
     Description *description();
-    void setFusionsync( const Fusionsync &v );
+    void setFusionsync( Fusionsync *v );
     Fusionsync *fusionsync();
-    void setPlain( const Plain &v );
+    void setPlain( Plain *v );
     Plain *plain();
-    void setLibraries( const Libraries &v );
+    void setLibraries( Libraries *v );
     Libraries *libraries();
-    void setAttributes( const Attributes &v );
+    void setAttributes( Attributes *v );
     Attributes *attributes();
-    void setVariantdefs( const Variantdefs &v );
+    void setVariantdefs( Variantdefs *v );
     Variantdefs *variantdefs();
-    void setClasses( const Classes &v );
+    void setClasses( Classes *v );
     Classes *classes();
-    void setDesignrules( const Designrules &v );
+    void setDesignrules( Designrules *v );
     Designrules *designrules();
-    void setAutorouter( const Autorouter &v );
+    void setAutorouter( Autorouter *v );
     Autorouter *autorouter();
-    void setElements( const Elements &v );
+    void setElements( Elements *v );
     Elements *elements();
-    void setSignals( const Signals &v );
+    void setSignals( Signals *v );
     Signals *signals_();
-    void setErrors( const Errors &v );
+    void setMfgpreviewcolors( Mfgpreviewcolors *v );
+    Mfgpreviewcolors *mfgpreviewcolors();
+    void setErrors( Errors *v );
     Errors *errors();
     /**
       Parse XML object from DOM element.
      */
-    static Board parseElement( const QDomElement &element, bool *ok );
+    static Board *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     double mLimitedwidth;
-    Description mDescription;
-    Fusionsync mFusionsync;
-    Plain mPlain;
-    Libraries mLibraries;
-    Attributes mAttributes;
-    Variantdefs mVariantdefs;
-    Classes mClasses;
-    Designrules mDesignrules;
-    Autorouter mAutorouter;
-    Elements mElements;
-    Signals mSignals;
-    Errors mErrors;
+    bool mLimitedwidth_set;
+    Description *mDescription;
+    Fusionsync *mFusionsync;
+    Plain *mPlain;
+    Libraries *mLibraries;
+    Attributes *mAttributes;
+    Variantdefs *mVariantdefs;
+    Classes *mClasses;
+    Designrules *mDesignrules;
+    Autorouter *mAutorouter;
+    Elements *mElements;
+    Signals *mSignals;
+    Mfgpreviewcolors *mMfgpreviewcolors;
+    Errors *mErrors;
 };
 
 class Pinref
 {
   public:
-    typedef QList<Pinref> List;
+    typedef QList<Pinref*> List;
 
+    Pinref();
+    ~Pinref();
     void setPart( const QString &v );
     QString part() const;
     void setGate( const QString &v );
@@ -2078,7 +2550,7 @@ class Pinref
     /**
       Parse XML object from DOM element.
      */
-    static Pinref parseElement( const QDomElement &element, bool *ok );
+    static Pinref *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2090,8 +2562,10 @@ class Pinref
 class Portref
 {
   public:
-    typedef QList<Portref> List;
+    typedef QList<Portref*> List;
 
+    Portref();
+    ~Portref();
     void setModuleinst( const QString &v );
     QString moduleinst() const;
     void setPort( const QString &v );
@@ -2099,7 +2573,7 @@ class Portref
     /**
       Parse XML object from DOM element.
      */
-    static Portref parseElement( const QDomElement &element, bool *ok );
+    static Portref *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2110,44 +2584,57 @@ class Portref
 class Junction
 {
   public:
-    typedef QList<Junction> List;
+    typedef QList<Junction*> List;
 
-    void setX( double v );
+    Junction();
+    ~Junction();
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
+    bool ySet() const;
     /**
       Parse XML object from DOM element.
      */
-    static Junction parseElement( const QDomElement &element, bool *ok );
+    static Junction *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
 };
 
 class Label
 {
   public:
-    typedef QList<Label> List;
+    typedef QList<Label*> List;
 
     enum FontEnum { Font_vector, Font_proportional, Font_fixed, Font_Invalid };
     enum XrefEnum { Xref_no, Xref_yes, Xref_Invalid };
     enum AlignEnum { Align_bottom_left, Align_bottom_center, Align_bottom_right, Align_center_left, Align_center, Align_center_right, Align_top_left, Align_top_center, Align_top_right, Align_Invalid };
 
-    void setX( double v );
+    Label();
+    ~Label();
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
-    void setSize( double v );
+    bool ySet() const;
+    void setSize( const double v );
     double size() const;
-    void setLayer( int v );
+    bool sizeSet() const;
+    void setLayer( const int v );
     int layer() const;
+    bool layerSet() const;
     void setFont( const FontEnum &v );
     Label::FontEnum font() const;
-    void setRatio( int v );
+    void setRatio( const int v );
     int ratio() const;
+    bool ratioSet() const;
     void setRot( const QString &v );
     QString rot() const;
     void setXref( const XrefEnum &v );
@@ -2160,7 +2647,7 @@ class Label
     /**
       Parse XML object from DOM element.
      */
-    static Label parseElement( const QDomElement &element, bool *ok );
+    static Label *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2169,11 +2656,16 @@ class Label
     static Label::AlignEnum alignEnumFromString( const QString & v, bool *ok = NULL );
 
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     double mSize;
+    bool mSize_set;
     int mLayer;
+    bool mLayer_set;
     FontEnum mFont;
     int mRatio;
+    bool mRatio_set;
     QString mRot;
     XrefEnum mXref;
     AlignEnum mAlign;
@@ -2182,23 +2674,30 @@ class Label
 class Probe
 {
   public:
-    typedef QList<Probe> List;
+    typedef QList<Probe*> List;
 
     enum FontEnum { Font_vector, Font_proportional, Font_fixed, Font_Invalid };
     enum XrefEnum { Xref_no, Xref_yes, Xref_Invalid };
 
-    void setX( double v );
+    Probe();
+    ~Probe();
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
-    void setSize( double v );
+    bool ySet() const;
+    void setSize( const double v );
     double size() const;
-    void setLayer( int v );
+    bool sizeSet() const;
+    void setLayer( const int v );
     int layer() const;
+    bool layerSet() const;
     void setFont( const FontEnum &v );
     Probe::FontEnum font() const;
-    void setRatio( int v );
+    void setRatio( const int v );
     int ratio() const;
+    bool ratioSet() const;
     void setRot( const QString &v );
     QString rot() const;
     void setXref( const XrefEnum &v );
@@ -2208,7 +2707,7 @@ class Probe
     /**
       Parse XML object from DOM element.
      */
-    static Probe parseElement( const QDomElement &element, bool *ok );
+    static Probe *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2216,11 +2715,16 @@ class Probe
     static Probe::XrefEnum xrefEnumFromString( const QString & v, bool *ok = NULL );
 
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     double mSize;
+    bool mSize_set;
     int mLayer;
+    bool mLayer_set;
     FontEnum mFont;
     int mRatio;
+    bool mRatio_set;
     QString mRot;
     XrefEnum mXref;
 };
@@ -2228,30 +2732,32 @@ class Probe
 class Segment
 {
   public:
-    typedef QList<Segment> List;
+    typedef QList<Segment*> List;
 
-    void addPinref( const Pinref &v );
+    Segment();
+    ~Segment();
+    void addPinref( Pinref* v );
     void setPinrefList( const Pinref::List &v );
     Pinref::List *pinrefList();
-    void addPortref( const Portref &v );
+    void addPortref( Portref* v );
     void setPortrefList( const Portref::List &v );
     Portref::List *portrefList();
-    void addWire( const Wire &v );
+    void addWire( Wire* v );
     void setWireList( const Wire::List &v );
     Wire::List *wireList();
-    void addJunction( const Junction &v );
+    void addJunction( Junction* v );
     void setJunctionList( const Junction::List &v );
     Junction::List *junctionList();
-    void addLabel( const Label &v );
+    void addLabel( Label* v );
     void setLabelList( const Label::List &v );
     Label::List *labelList();
-    void addProbe( const Probe &v );
+    void addProbe( Probe* v );
     void setProbeList( const Probe::List &v );
     Probe::List *probeList();
     /**
       Parse XML object from DOM element.
      */
-    static Segment parseElement( const QDomElement &element, bool *ok );
+    static Segment *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2266,37 +2772,43 @@ class Segment
 class Net
 {
   public:
-    typedef QList<Net> List;
+    typedef QList<Net*> List;
 
+    Net();
+    ~Net();
     void setName( const QString &v );
     QString name() const;
-    void setClass( int v );
+    void setClass( const int v );
     int class_() const;
-    void addSegment( const Segment &v );
+    bool classSet() const;
+    void addSegment( Segment* v );
     void setSegmentList( const Segment::List &v );
     Segment::List *segmentList();
     /**
       Parse XML object from DOM element.
      */
-    static Net parseElement( const QDomElement &element, bool *ok );
+    static Net *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     QString mName;
     int mClass;
+    bool mClass_set;
     Segment::List mSegmentList;
 };
 
 class Nets
 {
   public:
-    void addNet( const Net &v );
+    Nets();
+    ~Nets();
+    void addNet( Net* v );
     void setNetList( const Net::List &v );
     Net::List *netList();
     /**
       Parse XML object from DOM element.
      */
-    static Nets parseElement( const QDomElement &element, bool *ok );
+    static Nets *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2306,17 +2818,19 @@ class Nets
 class Bus
 {
   public:
-    typedef QList<Bus> List;
+    typedef QList<Bus*> List;
 
+    Bus();
+    ~Bus();
     void setName( const QString &v );
     QString name() const;
-    void addSegment( const Segment &v );
+    void addSegment( Segment* v );
     void setSegmentList( const Segment::List &v );
     Segment::List *segmentList();
     /**
       Parse XML object from DOM element.
      */
-    static Bus parseElement( const QDomElement &element, bool *ok );
+    static Bus *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2327,13 +2841,15 @@ class Bus
 class Busses
 {
   public:
-    void addBus( const Bus &v );
+    Busses();
+    ~Busses();
+    void addBus( Bus* v );
     void setBusList( const Bus::List &v );
     Bus::List *busList();
     /**
       Parse XML object from DOM element.
      */
-    static Busses parseElement( const QDomElement &element, bool *ok );
+    static Busses *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2343,30 +2859,34 @@ class Busses
 class Instance
 {
   public:
-    typedef QList<Instance> List;
+    typedef QList<Instance*> List;
 
     enum SmashedEnum { Smashed_no, Smashed_yes, Smashed_Invalid };
 
+    Instance();
+    ~Instance();
     void setPart( const QString &v );
     QString part() const;
     void setGate( const QString &v );
     QString gate() const;
-    void setX( double v );
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
+    bool ySet() const;
     void setSmashed( const SmashedEnum &v );
     Instance::SmashedEnum smashed() const;
     void setRot( const QString &v );
     QString rot() const;
-    void addAttribute( const Attribute &v );
+    void addAttribute( Attribute* v );
     void setAttributeList( const Attribute::List &v );
     Attribute::List *attributeList();
     static QString smashedEnumToString( const SmashedEnum & v );
     /**
       Parse XML object from DOM element.
      */
-    static Instance parseElement( const QDomElement &element, bool *ok );
+    static Instance *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2375,7 +2895,9 @@ class Instance
     QString mPart;
     QString mGate;
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     SmashedEnum mSmashed;
     QString mRot;
     Attribute::List mAttributeList;
@@ -2384,13 +2906,15 @@ class Instance
 class Instances
 {
   public:
-    void addInstance( const Instance &v );
+    Instances();
+    ~Instances();
+    void addInstance( Instance* v );
     void setInstanceList( const Instance::List &v );
     Instance::List *instanceList();
     /**
       Parse XML object from DOM element.
      */
-    static Instances parseElement( const QDomElement &element, bool *ok );
+    static Instances *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2400,34 +2924,39 @@ class Instances
 class Moduleinst
 {
   public:
-    typedef QList<Moduleinst> List;
+    typedef QList<Moduleinst*> List;
 
     enum SmashedEnum { Smashed_no, Smashed_yes, Smashed_Invalid };
 
+    Moduleinst();
+    ~Moduleinst();
     void setName( const QString &v );
     QString name() const;
     void setModule( const QString &v );
     QString module_() const;
     void setModulevariant( const QString &v );
     QString modulevariant() const;
-    void setX( double v );
+    void setX( const double v );
     double x() const;
-    void setY( double v );
+    bool xSet() const;
+    void setY( const double v );
     double y() const;
-    void setOffset( int v );
+    bool ySet() const;
+    void setOffset( const int v );
     int offset() const;
+    bool offsetSet() const;
     void setSmashed( const SmashedEnum &v );
     Moduleinst::SmashedEnum smashed() const;
     void setRot( const QString &v );
     QString rot() const;
-    void addAttribute( const Attribute &v );
+    void addAttribute( Attribute* v );
     void setAttributeList( const Attribute::List &v );
     Attribute::List *attributeList();
     static QString smashedEnumToString( const SmashedEnum & v );
     /**
       Parse XML object from DOM element.
      */
-    static Moduleinst parseElement( const QDomElement &element, bool *ok );
+    static Moduleinst *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2437,8 +2966,11 @@ class Moduleinst
     QString mModule;
     QString mModulevariant;
     double mX;
+    bool mX_set;
     double mY;
+    bool mY_set;
     int mOffset;
+    bool mOffset_set;
     SmashedEnum mSmashed;
     QString mRot;
     Attribute::List mAttributeList;
@@ -2447,13 +2979,15 @@ class Moduleinst
 class Moduleinsts
 {
   public:
-    void addModuleinst( const Moduleinst &v );
+    Moduleinsts();
+    ~Moduleinsts();
+    void addModuleinst( Moduleinst* v );
     void setModuleinstList( const Moduleinst::List &v );
     Moduleinst::List *moduleinstList();
     /**
       Parse XML object from DOM element.
      */
-    static Moduleinsts parseElement( const QDomElement &element, bool *ok );
+    static Moduleinsts *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2463,45 +2997,49 @@ class Moduleinsts
 class Sheet
 {
   public:
-    typedef QList<Sheet> List;
+    typedef QList<Sheet*> List;
 
-    void setDescription( const Description &v );
+    Sheet();
+    ~Sheet();
+    void setDescription( Description *v );
     Description *description();
-    void setPlain( const Plain &v );
+    void setPlain( Plain *v );
     Plain *plain();
-    void setModuleinsts( const Moduleinsts &v );
+    void setModuleinsts( Moduleinsts *v );
     Moduleinsts *moduleinsts();
-    void setInstances( const Instances &v );
+    void setInstances( Instances *v );
     Instances *instances();
-    void setBusses( const Busses &v );
+    void setBusses( Busses *v );
     Busses *busses();
-    void setNets( const Nets &v );
+    void setNets( Nets *v );
     Nets *nets();
     /**
       Parse XML object from DOM element.
      */
-    static Sheet parseElement( const QDomElement &element, bool *ok );
+    static Sheet *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
-    Description mDescription;
-    Plain mPlain;
-    Moduleinsts mModuleinsts;
-    Instances mInstances;
-    Busses mBusses;
-    Nets mNets;
+    Description *mDescription;
+    Plain *mPlain;
+    Moduleinsts *mModuleinsts;
+    Instances *mInstances;
+    Busses *mBusses;
+    Nets *mNets;
 };
 
 class Sheets
 {
   public:
-    void addSheet( const Sheet &v );
+    Sheets();
+    ~Sheets();
+    void addSheet( Sheet* v );
     void setSheetList( const Sheet::List &v );
     Sheet::List *sheetList();
     /**
       Parse XML object from DOM element.
      */
-    static Sheets parseElement( const QDomElement &element, bool *ok );
+    static Sheets *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2511,8 +3049,10 @@ class Sheets
 class Part
 {
   public:
-    typedef QList<Part> List;
+    typedef QList<Part*> List;
 
+    Part();
+    ~Part();
     void setName( const QString &v );
     QString name() const;
     void setLibrary( const QString &v );
@@ -2529,18 +3069,18 @@ class Part
     QString technology() const;
     void setValue( const QString &v );
     QString value() const;
-    void addAttribute( const Attribute &v );
+    void addAttribute( Attribute* v );
     void setAttributeList( const Attribute::List &v );
     Attribute::List *attributeList();
-    void addVariant( const Variant &v );
+    void addVariant( Variant* v );
     void setVariantList( const Variant::List &v );
     Variant::List *variantList();
-    void setSpice( const Spice &v );
+    void setSpice( Spice *v );
     Spice *spice();
     /**
       Parse XML object from DOM element.
      */
-    static Part parseElement( const QDomElement &element, bool *ok );
+    static Part *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2554,19 +3094,21 @@ class Part
     QString mValue;
     Attribute::List mAttributeList;
     Variant::List mVariantList;
-    Spice mSpice;
+    Spice *mSpice;
 };
 
 class Parts
 {
   public:
-    void addPart( const Part &v );
+    Parts();
+    ~Parts();
+    void addPart( Part* v );
     void setPartList( const Part::List &v );
     Part::List *partList();
     /**
       Parse XML object from DOM element.
      */
-    static Parts parseElement( const QDomElement &element, bool *ok );
+    static Parts *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2576,23 +3118,27 @@ class Parts
 class Port
 {
   public:
-    typedef QList<Port> List;
+    typedef QList<Port*> List;
 
     enum DirectionEnum { Direction_nc, Direction_in, Direction_out, Direction_io, Direction_oc, Direction_pwr, Direction_pas, Direction_hiz, Direction_Invalid };
 
+    Port();
+    ~Port();
     void setName( const QString &v );
     QString name() const;
-    void setSide( int v );
+    void setSide( const int v );
     int side() const;
-    void setCoord( double v );
+    bool sideSet() const;
+    void setCoord( const double v );
     double coord() const;
+    bool coordSet() const;
     void setDirection( const DirectionEnum &v );
     Port::DirectionEnum direction() const;
     static QString directionEnumToString( const DirectionEnum & v );
     /**
       Parse XML object from DOM element.
      */
-    static Port parseElement( const QDomElement &element, bool *ok );
+    static Port *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2600,20 +3146,24 @@ class Port
 
     QString mName;
     int mSide;
+    bool mSide_set;
     double mCoord;
+    bool mCoord_set;
     DirectionEnum mDirection;
 };
 
 class Ports
 {
   public:
-    void addPort( const Port &v );
+    Ports();
+    ~Ports();
+    void addPort( Port* v );
     void setPortList( const Port::List &v );
     Port::List *portList();
     /**
       Parse XML object from DOM element.
      */
-    static Ports parseElement( const QDomElement &element, bool *ok );
+    static Ports *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2623,54 +3173,62 @@ class Ports
 class Module
 {
   public:
-    typedef QList<Module> List;
+    typedef QList<Module*> List;
 
+    Module();
+    ~Module();
     void setName( const QString &v );
     QString name() const;
     void setPrefix( const QString &v );
     QString prefix() const;
-    void setDx( double v );
+    void setDx( const double v );
     double dx() const;
-    void setDy( double v );
+    bool dxSet() const;
+    void setDy( const double v );
     double dy() const;
-    void setDescription( const Description &v );
+    bool dySet() const;
+    void setDescription( Description *v );
     Description *description();
-    void setPorts( const Ports &v );
+    void setPorts( Ports *v );
     Ports *ports();
-    void setVariantdefs( const Variantdefs &v );
+    void setVariantdefs( Variantdefs *v );
     Variantdefs *variantdefs();
-    void setParts( const Parts &v );
+    void setParts( Parts *v );
     Parts *parts();
-    void setSheets( const Sheets &v );
+    void setSheets( Sheets *v );
     Sheets *sheets();
     /**
       Parse XML object from DOM element.
      */
-    static Module parseElement( const QDomElement &element, bool *ok );
+    static Module *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     QString mName;
     QString mPrefix;
     double mDx;
+    bool mDx_set;
     double mDy;
-    Description mDescription;
-    Ports mPorts;
-    Variantdefs mVariantdefs;
-    Parts mParts;
-    Sheets mSheets;
+    bool mDy_set;
+    Description *mDescription;
+    Ports *mPorts;
+    Variantdefs *mVariantdefs;
+    Parts *mParts;
+    Sheets *mSheets;
 };
 
 class Modules
 {
   public:
-    void addModule( const Module &v );
+    Modules();
+    ~Modules();
+    void addModule( Module* v );
     void setModuleList( const Module::List &v );
     Module::List *moduleList();
     /**
       Parse XML object from DOM element.
      */
-    static Modules parseElement( const QDomElement &element, bool *ok );
+    static Modules *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2680,87 +3238,94 @@ class Modules
 class Schematic
 {
   public:
+    Schematic();
+    ~Schematic();
     void setXreflabel( const QString &v );
     QString xreflabel() const;
     void setXrefpart( const QString &v );
     QString xrefpart() const;
-    void setDescription( const Description &v );
+    void setDescription( Description *v );
     Description *description();
-    void setLibraries( const Libraries &v );
+    void setLibraries( Libraries *v );
     Libraries *libraries();
-    void setAttributes( const Attributes &v );
+    void setAttributes( Attributes *v );
     Attributes *attributes();
-    void setVariantdefs( const Variantdefs &v );
+    void setVariantdefs( Variantdefs *v );
     Variantdefs *variantdefs();
-    void setClasses( const Classes &v );
+    void setClasses( Classes *v );
     Classes *classes();
-    void setModules( const Modules &v );
+    void setModules( Modules *v );
     Modules *modules();
-    void setParts( const Parts &v );
+    void setParts( Parts *v );
     Parts *parts();
-    void setSheets( const Sheets &v );
+    void setSheets( Sheets *v );
     Sheets *sheets();
-    void setErrors( const Errors &v );
+    void setErrors( Errors *v );
     Errors *errors();
     /**
       Parse XML object from DOM element.
      */
-    static Schematic parseElement( const QDomElement &element, bool *ok );
+    static Schematic *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     QString mXreflabel;
     QString mXrefpart;
-    Description mDescription;
-    Libraries mLibraries;
-    Attributes mAttributes;
-    Variantdefs mVariantdefs;
-    Classes mClasses;
-    Modules mModules;
-    Parts mParts;
-    Sheets mSheets;
-    Errors mErrors;
+    Description *mDescription;
+    Libraries *mLibraries;
+    Attributes *mAttributes;
+    Variantdefs *mVariantdefs;
+    Classes *mClasses;
+    Modules *mModules;
+    Parts *mParts;
+    Sheets *mSheets;
+    Errors *mErrors;
 };
 
 class Drawing
 {
   public:
-    void setLibrary( const Library &v );
+    Drawing();
+    ~Drawing();
+    void setLibrary( Library *v );
     Library *library();
-    void setSchematic( const Schematic &v );
+    void setSchematic( Schematic *v );
     Schematic *schematic();
-    void setBoard( const Board &v );
+    void setBoard( Board *v );
     Board *board();
-    void setSettings( const Settings &v );
+    void setSettings( Settings *v );
     Settings *settings();
-    void setGrid( const Grid &v );
+    void setGrid( Grid *v );
     Grid *grid();
-    void setLayers( const Layers &v );
+    void setLayers( Layers *v );
     Layers *layers();
     /**
       Parse XML object from DOM element.
      */
-    static Drawing parseElement( const QDomElement &element, bool *ok );
+    static Drawing *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
-    Library mLibrary;
-    Schematic mSchematic;
-    Board mBoard;
-    Settings mSettings;
-    Grid mGrid;
-    Layers mLayers;
+    Library *mLibrary;
+    Schematic *mSchematic;
+    Board *mBoard;
+    Settings *mSettings;
+    Grid *mGrid;
+    Layers *mLayers;
 };
 
 class Note
 {
   public:
-    typedef QList<Note> List;
+    typedef QList<Note*> List;
 
     enum SeverityEnum { Severity_info, Severity_warning, Severity_error, Severity_Invalid };
 
-    void setVersion( double v );
+    Note();
+    ~Note();
+    void setVersion( const double v );
     double version() const;
+    bool versionSet() const;
     void setSeverity( const SeverityEnum &v );
     Note::SeverityEnum severity() const;
     void setValue( const QString &v );
@@ -2769,13 +3334,14 @@ class Note
     /**
       Parse XML object from DOM element.
      */
-    static Note parseElement( const QDomElement &element, bool *ok );
+    static Note *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
     static Note::SeverityEnum severityEnumFromString( const QString & v, bool *ok = NULL );
 
     double mVersion;
+    bool mVersion_set;
     SeverityEnum mSeverity;
     QString mValue;
 };
@@ -2783,13 +3349,15 @@ class Note
 class Compatibility
 {
   public:
-    void addNote( const Note &v );
+    Compatibility();
+    ~Compatibility();
+    void addNote( Note* v );
     void setNoteList( const Note::List &v );
     Note::List *noteList();
     /**
       Parse XML object from DOM element.
      */
-    static Compatibility parseElement( const QDomElement &element, bool *ok );
+    static Compatibility *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
 
   private:
@@ -2799,25 +3367,27 @@ class Compatibility
 class Eagle
 {
   public:
-    void setVersion( double v );
-    double version() const;
-    void setCompatibility( const Compatibility &v );
+    Eagle();
+    ~Eagle();
+    void setVersion( const QString &v );
+    QString version() const;
+    void setCompatibility( Compatibility *v );
     Compatibility *compatibility();
-    void setDrawing( const Drawing &v );
+    void setDrawing( Drawing *v );
     Drawing *drawing();
     /**
       Parse XML object from DOM element.
      */
-    static Eagle parseElement( const QDomElement &element, bool *ok );
+    static Eagle *parseElement( const QDomElement &element, bool *ok );
     void writeElement( QXmlStreamWriter &xml ) const;
-    static Eagle parseFile( const QString &filename, bool *ok );
-    static Eagle parseString( const QString &xml, bool *ok );
+    static Eagle *parseFile( const QString &filename, bool *ok );
+    static Eagle *parseString( const QString &xml, bool *ok );
     bool writeFile( const QString &filename ) const;
 
   private:
-    double mVersion;
-    Compatibility mCompatibility;
-    Drawing mDrawing;
+    QString mVersion;
+    Compatibility *mCompatibility;
+    Drawing *mDrawing;
 };
 
 #endif

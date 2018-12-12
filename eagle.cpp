@@ -7,14 +7,33 @@
 #include <QFile>
 #include <QDomDocument>
 
-void Layer::setNumber( int v )
+Layer::Layer()
 {
+  mNumber_set = false;
+  mColor_set = false;
+  mFill_set = false;
+  mVisible = Visible_Invalid;
+  mActive = Active_Invalid;
+}
+
+Layer::~Layer()
+{
+}
+
+void Layer::setNumber( const int v )
+{
+  mNumber_set = true;
   mNumber = v;
 }
 
 int Layer::number() const
 {
   return mNumber;
+}
+
+bool Layer::numberSet() const
+{
+  return mNumber_set;
 }
 
 void Layer::setName( const QString &v )
@@ -27,8 +46,9 @@ QString Layer::name() const
   return mName;
 }
 
-void Layer::setColor( int v )
+void Layer::setColor( const int v )
 {
+  mColor_set = true;
   mColor = v;
 }
 
@@ -37,14 +57,25 @@ int Layer::color() const
   return mColor;
 }
 
-void Layer::setFill( int v )
+bool Layer::colorSet() const
 {
+  return mColor_set;
+}
+
+void Layer::setFill( const int v )
+{
+  mFill_set = true;
   mFill = v;
 }
 
 int Layer::fill() const
 {
   return mFill;
+}
+
+bool Layer::fillSet() const
+{
+  return mFill_set;
 }
 
 void Layer::setVisible( const VisibleEnum &v )
@@ -123,41 +154,44 @@ QString Layer::activeEnumToString( const ActiveEnum & v )
   }
 }
 
-Layer Layer::parseElement( const QDomElement &element, bool *ok )
+Layer *Layer::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "layer" ) {
     qCritical() << "Expected 'layer', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Layer();
+    return nullptr;
   }
 
-  Layer result = Layer();
+  Layer* result = new Layer();
 
-  result.setNumber( element.attribute( "number" ).toInt() );
-  result.setName( element.attribute( "name" ) );
-  result.setColor( element.attribute( "color" ).toInt() );
-  result.setFill( element.attribute( "fill" ).toInt() );
+  if (element.hasAttribute("number"))
+    result->setNumber( element.attribute( "number" ).toInt() );
+  result->setName( element.attribute( "name" ) );
+  if (element.hasAttribute("color"))
+    result->setColor( element.attribute( "color" ).toInt() );
+  if (element.hasAttribute("fill"))
+    result->setFill( element.attribute( "fill" ).toInt() );
   if (element.hasAttribute("visible"))  {
     VisibleEnum visible = visibleEnumFromString( element.attribute( "visible" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "visible" ) << "\" in the \"visible\" element";
-      return Layer();
+      return nullptr;
     } else {
-      result.setVisible( visible );
+      result->setVisible( visible );
     }
   } else {
-    result.setVisible(visibleEnumFromString("yes"));
+    result->setVisible(Visible_Invalid);
   }
   if (element.hasAttribute("active"))  {
     ActiveEnum active = activeEnumFromString( element.attribute( "active" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "active" ) << "\" in the \"active\" element";
-      return Layer();
+      return nullptr;
     } else {
-      result.setActive( active );
+      result->setActive( active );
     }
   } else {
-    result.setActive(activeEnumFromString("yes"));
+    result->setActive(Active_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -166,11 +200,32 @@ Layer Layer::parseElement( const QDomElement &element, bool *ok )
 
 void Layer::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "layer" );
+  xml.writeStartElement( "layer" );
+  if (mNumber_set)
+    xml.writeAttribute("number", QString::number( mNumber ) );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (mColor_set)
+    xml.writeAttribute("color", QString::number( mColor ) );
+  if (mFill_set)
+    xml.writeAttribute("fill", QString::number( mFill ) );
+  if (mVisible != Visible_Invalid)
+    xml.writeAttribute("visible", visibleEnumToString(mVisible));
+  if (mActive != Active_Invalid)
+    xml.writeAttribute("active", activeEnumToString(mActive));
+  xml.writeEndElement();
 }
 
 
-void Layers::addLayer( const Layer &v )
+Layers::Layers()
+{
+}
+
+Layers::~Layers()
+{
+}
+
+void Layers::addLayer( Layer* v )
 {
   mLayerList.append( v );
 }
@@ -185,23 +240,23 @@ Layer::List *Layers::layerList()
   return &mLayerList;
 }
 
-Layers Layers::parseElement( const QDomElement &element, bool *ok )
+Layers *Layers::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "layers" ) {
     qCritical() << "Expected 'layers', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Layers();
+    return nullptr;
   }
 
-  Layers result = Layers();
+  Layers* result = new Layers();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "layer" ) {
       bool ok;
-      Layer o = Layer::parseElement( e, &ok );
-      if ( ok ) result.addLayer( o );
+      Layer *o = Layer::parseElement( e, &ok );
+      if ( ok ) result->addLayer( o );
     }
   }
 
@@ -214,22 +269,46 @@ void Layers::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mLayerList.isEmpty() ) {
     xml.writeStartElement( "layers" );
-    foreach( Layer e, mLayerList ) {
-      e.writeElement( xml );
+    foreach( Layer* e, mLayerList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
 
-void Grid::setDistance( double v )
+Grid::Grid()
 {
+  mDistance_set = false;
+  mUnitdist = Unitdist_Invalid;
+  mUnit = Unit_Invalid;
+  mStyle = Style_Invalid;
+  mMultiple_set = false;
+  mDisplay = Display_Invalid;
+  mAltdistance_set = false;
+  mAltunitdist = Altunitdist_Invalid;
+  mAltunit = Altunit_Invalid;
+}
+
+Grid::~Grid()
+{
+}
+
+void Grid::setDistance( const double v )
+{
+  mDistance_set = true;
   mDistance = v;
 }
 
 double Grid::distance() const
 {
   return mDistance;
+}
+
+bool Grid::distanceSet() const
+{
+  return mDistance_set;
 }
 
 void Grid::setUnitdist( const UnitdistEnum &v )
@@ -262,14 +341,20 @@ Grid::StyleEnum Grid::style() const
   return mStyle;
 }
 
-void Grid::setMultiple( int v )
+void Grid::setMultiple( const int v )
 {
+  mMultiple_set = true;
   mMultiple = v;
 }
 
 int Grid::multiple() const
 {
   return mMultiple;
+}
+
+bool Grid::multipleSet() const
+{
+  return mMultiple_set;
 }
 
 void Grid::setDisplay( const DisplayEnum &v )
@@ -282,14 +367,20 @@ Grid::DisplayEnum Grid::display() const
   return mDisplay;
 }
 
-void Grid::setAltdistance( double v )
+void Grid::setAltdistance( const double v )
 {
+  mAltdistance_set = true;
   mAltdistance = v;
 }
 
 double Grid::altdistance() const
 {
   return mAltdistance;
+}
+
+bool Grid::altdistanceSet() const
+{
+  return mAltdistance_set;
 }
 
 void Grid::setAltunitdist( const AltunitdistEnum &v )
@@ -504,84 +595,87 @@ QString Grid::altunitEnumToString( const AltunitEnum & v )
   }
 }
 
-Grid Grid::parseElement( const QDomElement &element, bool *ok )
+Grid *Grid::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "grid" ) {
     qCritical() << "Expected 'grid', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Grid();
+    return nullptr;
   }
 
-  Grid result = Grid();
+  Grid* result = new Grid();
 
-  result.setDistance( element.attribute( "distance" ).toDouble() );
+  if (element.hasAttribute("distance"))
+    result->setDistance( element.attribute( "distance" ).toDouble() );
   if (element.hasAttribute("unitdist"))  {
     UnitdistEnum unitdist = unitdistEnumFromString( element.attribute( "unitdist" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "unitdist" ) << "\" in the \"unitdist\" element";
-      return Grid();
+      return nullptr;
     } else {
-      result.setUnitdist( unitdist );
+      result->setUnitdist( unitdist );
     }
   } else {
-    result.setUnitdist(unitdistEnumFromString(""));
+    result->setUnitdist(Unitdist_Invalid);
   }
   if (element.hasAttribute("unit"))  {
     UnitEnum unit = unitEnumFromString( element.attribute( "unit" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "unit" ) << "\" in the \"unit\" element";
-      return Grid();
+      return nullptr;
     } else {
-      result.setUnit( unit );
+      result->setUnit( unit );
     }
   } else {
-    result.setUnit(unitEnumFromString(""));
+    result->setUnit(Unit_Invalid);
   }
   if (element.hasAttribute("style"))  {
     StyleEnum style = styleEnumFromString( element.attribute( "style" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "style" ) << "\" in the \"style\" element";
-      return Grid();
+      return nullptr;
     } else {
-      result.setStyle( style );
+      result->setStyle( style );
     }
   } else {
-    result.setStyle(styleEnumFromString("lines"));
+    result->setStyle(Style_Invalid);
   }
-  result.setMultiple( element.attribute( "multiple" ).toInt() );
+  if (element.hasAttribute("multiple"))
+    result->setMultiple( element.attribute( "multiple" ).toInt() );
   if (element.hasAttribute("display"))  {
     DisplayEnum display = displayEnumFromString( element.attribute( "display" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "display" ) << "\" in the \"display\" element";
-      return Grid();
+      return nullptr;
     } else {
-      result.setDisplay( display );
+      result->setDisplay( display );
     }
   } else {
-    result.setDisplay(displayEnumFromString("no"));
+    result->setDisplay(Display_Invalid);
   }
-  result.setAltdistance( element.attribute( "altdistance" ).toDouble() );
+  if (element.hasAttribute("altdistance"))
+    result->setAltdistance( element.attribute( "altdistance" ).toDouble() );
   if (element.hasAttribute("altunitdist"))  {
     AltunitdistEnum altunitdist = altunitdistEnumFromString( element.attribute( "altunitdist" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "altunitdist" ) << "\" in the \"altunitdist\" element";
-      return Grid();
+      return nullptr;
     } else {
-      result.setAltunitdist( altunitdist );
+      result->setAltunitdist( altunitdist );
     }
   } else {
-    result.setAltunitdist(altunitdistEnumFromString(""));
+    result->setAltunitdist(Altunitdist_Invalid);
   }
   if (element.hasAttribute("altunit"))  {
     AltunitEnum altunit = altunitEnumFromString( element.attribute( "altunit" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "altunit" ) << "\" in the \"altunit\" element";
-      return Grid();
+      return nullptr;
     } else {
-      result.setAltunit( altunit );
+      result->setAltunit( altunit );
     }
   } else {
-    result.setAltunit(altunitEnumFromString(""));
+    result->setAltunit(Altunit_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -590,9 +684,39 @@ Grid Grid::parseElement( const QDomElement &element, bool *ok )
 
 void Grid::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "grid" );
+  xml.writeStartElement( "grid" );
+  if (mDistance_set)
+    xml.writeAttribute("distance", QString::number( mDistance ) );
+  if (mUnitdist != Unitdist_Invalid)
+    xml.writeAttribute("unitdist", unitdistEnumToString(mUnitdist));
+  if (mUnit != Unit_Invalid)
+    xml.writeAttribute("unit", unitEnumToString(mUnit));
+  if (mStyle != Style_Invalid)
+    xml.writeAttribute("style", styleEnumToString(mStyle));
+  if (mMultiple_set)
+    xml.writeAttribute("multiple", QString::number( mMultiple ) );
+  if (mDisplay != Display_Invalid)
+    xml.writeAttribute("display", displayEnumToString(mDisplay));
+  if (mAltdistance_set)
+    xml.writeAttribute("altdistance", QString::number( mAltdistance ) );
+  if (mAltunitdist != Altunitdist_Invalid)
+    xml.writeAttribute("altunitdist", altunitdistEnumToString(mAltunitdist));
+  if (mAltunit != Altunit_Invalid)
+    xml.writeAttribute("altunit", altunitEnumToString(mAltunit));
+  xml.writeEndElement();
 }
 
+
+Setting::Setting()
+{
+  mAlwaysvectorfont = Alwaysvectorfont_Invalid;
+  mVerticaltext = Verticaltext_Invalid;
+  mKeepoldvectorfont = Keepoldvectorfont_Invalid;
+}
+
+Setting::~Setting()
+{
+}
 
 void Setting::setAlwaysvectorfont( const AlwaysvectorfontEnum &v )
 {
@@ -708,48 +832,48 @@ QString Setting::keepoldvectorfontEnumToString( const KeepoldvectorfontEnum & v 
   }
 }
 
-Setting Setting::parseElement( const QDomElement &element, bool *ok )
+Setting *Setting::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "setting" ) {
     qCritical() << "Expected 'setting', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Setting();
+    return nullptr;
   }
 
-  Setting result = Setting();
+  Setting* result = new Setting();
 
   if (element.hasAttribute("alwaysvectorfont"))  {
     AlwaysvectorfontEnum alwaysvectorfont = alwaysvectorfontEnumFromString( element.attribute( "alwaysvectorfont" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "alwaysvectorfont" ) << "\" in the \"alwaysvectorfont\" element";
-      return Setting();
+      return nullptr;
     } else {
-      result.setAlwaysvectorfont( alwaysvectorfont );
+      result->setAlwaysvectorfont( alwaysvectorfont );
     }
   } else {
-    result.setAlwaysvectorfont(alwaysvectorfontEnumFromString(""));
+    result->setAlwaysvectorfont(Alwaysvectorfont_Invalid);
   }
   if (element.hasAttribute("verticaltext"))  {
     VerticaltextEnum verticaltext = verticaltextEnumFromString( element.attribute( "verticaltext" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "verticaltext" ) << "\" in the \"verticaltext\" element";
-      return Setting();
+      return nullptr;
     } else {
-      result.setVerticaltext( verticaltext );
+      result->setVerticaltext( verticaltext );
     }
   } else {
-    result.setVerticaltext(verticaltextEnumFromString("up"));
+    result->setVerticaltext(Verticaltext_Invalid);
   }
   if (element.hasAttribute("keepoldvectorfont"))  {
     KeepoldvectorfontEnum keepoldvectorfont = keepoldvectorfontEnumFromString( element.attribute( "keepoldvectorfont" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "keepoldvectorfont" ) << "\" in the \"keepoldvectorfont\" element";
-      return Setting();
+      return nullptr;
     } else {
-      result.setKeepoldvectorfont( keepoldvectorfont );
+      result->setKeepoldvectorfont( keepoldvectorfont );
     }
   } else {
-    result.setKeepoldvectorfont(keepoldvectorfontEnumFromString("no"));
+    result->setKeepoldvectorfont(Keepoldvectorfont_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -758,11 +882,26 @@ Setting Setting::parseElement( const QDomElement &element, bool *ok )
 
 void Setting::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "setting" );
+  xml.writeStartElement( "setting" );
+  if (mAlwaysvectorfont != Alwaysvectorfont_Invalid)
+    xml.writeAttribute("alwaysvectorfont", alwaysvectorfontEnumToString(mAlwaysvectorfont));
+  if (mVerticaltext != Verticaltext_Invalid)
+    xml.writeAttribute("verticaltext", verticaltextEnumToString(mVerticaltext));
+  if (mKeepoldvectorfont != Keepoldvectorfont_Invalid)
+    xml.writeAttribute("keepoldvectorfont", keepoldvectorfontEnumToString(mKeepoldvectorfont));
+  xml.writeEndElement();
 }
 
 
-void Settings::addSetting( const Setting &v )
+Settings::Settings()
+{
+}
+
+Settings::~Settings()
+{
+}
+
+void Settings::addSetting( Setting* v )
 {
   mSettingList.append( v );
 }
@@ -777,23 +916,23 @@ Setting::List *Settings::settingList()
   return &mSettingList;
 }
 
-Settings Settings::parseElement( const QDomElement &element, bool *ok )
+Settings *Settings::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "settings" ) {
     qCritical() << "Expected 'settings', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Settings();
+    return nullptr;
   }
 
-  Settings result = Settings();
+  Settings* result = new Settings();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "setting" ) {
       bool ok;
-      Setting o = Setting::parseElement( e, &ok );
-      if ( ok ) result.addSetting( o );
+      Setting *o = Setting::parseElement( e, &ok );
+      if ( ok ) result->addSetting( o );
     }
   }
 
@@ -806,16 +945,149 @@ void Settings::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mSettingList.isEmpty() ) {
     xml.writeStartElement( "settings" );
-    foreach( Setting e, mSettingList ) {
-      e.writeElement( xml );
+    foreach( Setting* e, mSettingList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
 
-void Via::setX( double v )
+Mfgpreviewcolor::Mfgpreviewcolor()
 {
+}
+
+Mfgpreviewcolor::~Mfgpreviewcolor()
+{
+}
+
+void Mfgpreviewcolor::setName( const QString &v )
+{
+  mName = v;
+}
+
+QString Mfgpreviewcolor::name() const
+{
+  return mName;
+}
+
+void Mfgpreviewcolor::setColor( const QString &v )
+{
+  mColor = v;
+}
+
+QString Mfgpreviewcolor::color() const
+{
+  return mColor;
+}
+
+Mfgpreviewcolor *Mfgpreviewcolor::parseElement( const QDomElement &element, bool *ok )
+{
+  if ( element.tagName() != "mfgpreviewcolor" ) {
+    qCritical() << "Expected 'mfgpreviewcolor', got '" << element.tagName() << "'.";
+    if ( ok ) *ok = false;
+    return nullptr;
+  }
+
+  Mfgpreviewcolor* result = new Mfgpreviewcolor();
+
+  result->setName( element.attribute( "name" ) );
+  result->setColor( element.attribute( "color" ) );
+
+  if ( ok ) *ok = true;
+  return result;
+}
+
+void Mfgpreviewcolor::writeElement( QXmlStreamWriter &xml ) const
+{
+  xml.writeStartElement( "mfgpreviewcolor" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mColor.isEmpty())
+    xml.writeAttribute("color", mColor );
+  xml.writeEndElement();
+}
+
+
+Mfgpreviewcolors::Mfgpreviewcolors()
+{
+}
+
+Mfgpreviewcolors::~Mfgpreviewcolors()
+{
+}
+
+void Mfgpreviewcolors::addMfgpreviewcolor( Mfgpreviewcolor* v )
+{
+  mMfgpreviewcolorList.append( v );
+}
+
+void Mfgpreviewcolors::setMfgpreviewcolorList( const Mfgpreviewcolor::List &v )
+{
+  mMfgpreviewcolorList = v;
+}
+
+Mfgpreviewcolor::List *Mfgpreviewcolors::mfgpreviewcolorList()
+{
+  return &mMfgpreviewcolorList;
+}
+
+Mfgpreviewcolors *Mfgpreviewcolors::parseElement( const QDomElement &element, bool *ok )
+{
+  if ( element.tagName() != "mfgpreviewcolors" ) {
+    qCritical() << "Expected 'mfgpreviewcolors', got '" << element.tagName() << "'.";
+    if ( ok ) *ok = false;
+    return nullptr;
+  }
+
+  Mfgpreviewcolors* result = new Mfgpreviewcolors();
+
+  QDomNode n;
+  for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
+    QDomElement e = n.toElement();
+    if ( e.tagName() == "mfgpreviewcolor" ) {
+      bool ok;
+      Mfgpreviewcolor *o = Mfgpreviewcolor::parseElement( e, &ok );
+      if ( ok ) result->addMfgpreviewcolor( o );
+    }
+  }
+
+
+  if ( ok ) *ok = true;
+  return result;
+}
+
+void Mfgpreviewcolors::writeElement( QXmlStreamWriter &xml ) const
+{
+  if ( !mMfgpreviewcolorList.isEmpty() ) {
+    xml.writeStartElement( "mfgpreviewcolors" );
+    foreach( Mfgpreviewcolor* e, mMfgpreviewcolorList ) {
+      if (e)
+        e->writeElement( xml );
+    }
+    xml.writeEndElement();
+  }
+}
+
+
+Via::Via()
+{
+  mX_set = false;
+  mY_set = false;
+  mDrill_set = false;
+  mDiameter_set = false;
+  mShape = Shape_Invalid;
+  mAlwaysstop = Alwaysstop_Invalid;
+}
+
+Via::~Via()
+{
+}
+
+void Via::setX( const double v )
+{
+  mX_set = true;
   mX = v;
 }
 
@@ -824,14 +1096,25 @@ double Via::x() const
   return mX;
 }
 
-void Via::setY( double v )
+bool Via::xSet() const
 {
+  return mX_set;
+}
+
+void Via::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
 double Via::y() const
 {
   return mY;
+}
+
+bool Via::ySet() const
+{
+  return mY_set;
 }
 
 void Via::setExtent( const QString &v )
@@ -844,8 +1127,9 @@ QString Via::extent() const
   return mExtent;
 }
 
-void Via::setDrill( double v )
+void Via::setDrill( const double v )
 {
+  mDrill_set = true;
   mDrill = v;
 }
 
@@ -854,14 +1138,25 @@ double Via::drill() const
   return mDrill;
 }
 
-void Via::setDiameter( double v )
+bool Via::drillSet() const
 {
+  return mDrill_set;
+}
+
+void Via::setDiameter( const double v )
+{
+  mDiameter_set = true;
   mDiameter = v;
 }
 
 double Via::diameter() const
 {
   return mDiameter;
+}
+
+bool Via::diameterSet() const
+{
+  return mDiameter_set;
 }
 
 void Via::setShape( const ShapeEnum &v )
@@ -943,42 +1238,46 @@ QString Via::alwaysstopEnumToString( const AlwaysstopEnum & v )
   }
 }
 
-Via Via::parseElement( const QDomElement &element, bool *ok )
+Via *Via::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "via" ) {
     qCritical() << "Expected 'via', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Via();
+    return nullptr;
   }
 
-  Via result = Via();
+  Via* result = new Via();
 
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setExtent( element.attribute( "extent" ) );
-  result.setDrill( element.attribute( "drill" ).toDouble() );
-  result.setDiameter( element.attribute( "diameter" ).toDouble() );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  result->setExtent( element.attribute( "extent" ) );
+  if (element.hasAttribute("drill"))
+    result->setDrill( element.attribute( "drill" ).toDouble() );
+  if (element.hasAttribute("diameter"))
+    result->setDiameter( element.attribute( "diameter" ).toDouble() );
   if (element.hasAttribute("shape"))  {
     ShapeEnum shape = shapeEnumFromString( element.attribute( "shape" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "shape" ) << "\" in the \"shape\" element";
-      return Via();
+      return nullptr;
     } else {
-      result.setShape( shape );
+      result->setShape( shape );
     }
   } else {
-    result.setShape(shapeEnumFromString("round"));
+    result->setShape(Shape_Invalid);
   }
   if (element.hasAttribute("alwaysstop"))  {
     AlwaysstopEnum alwaysstop = alwaysstopEnumFromString( element.attribute( "alwaysstop" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "alwaysstop" ) << "\" in the \"alwaysstop\" element";
-      return Via();
+      return nullptr;
     } else {
-      result.setAlwaysstop( alwaysstop );
+      result->setAlwaysstop( alwaysstop );
     }
   } else {
-    result.setAlwaysstop(alwaysstopEnumFromString("no"));
+    result->setAlwaysstop(Alwaysstop_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -987,9 +1286,33 @@ Via Via::parseElement( const QDomElement &element, bool *ok )
 
 void Via::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "via" );
+  xml.writeStartElement( "via" );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (!mExtent.isEmpty())
+    xml.writeAttribute("extent", mExtent );
+  if (mDrill_set)
+    xml.writeAttribute("drill", QString::number( mDrill ) );
+  if (mDiameter_set)
+    xml.writeAttribute("diameter", QString::number( mDiameter ) );
+  if (mShape != Shape_Invalid)
+    xml.writeAttribute("shape", shapeEnumToString(mShape));
+  if (mAlwaysstop != Alwaysstop_Invalid)
+    xml.writeAttribute("alwaysstop", alwaysstopEnumToString(mAlwaysstop));
+  xml.writeEndElement();
 }
 
+
+Contactref::Contactref()
+{
+  mRoute = Route_Invalid;
+}
+
+Contactref::~Contactref()
+{
+}
 
 void Contactref::setElement( const QString &v )
 {
@@ -1059,30 +1382,30 @@ QString Contactref::routeEnumToString( const RouteEnum & v )
   }
 }
 
-Contactref Contactref::parseElement( const QDomElement &element, bool *ok )
+Contactref *Contactref::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "contactref" ) {
     qCritical() << "Expected 'contactref', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Contactref();
+    return nullptr;
   }
 
-  Contactref result = Contactref();
+  Contactref* result = new Contactref();
 
-  result.setElement( element.attribute( "element" ) );
-  result.setPad( element.attribute( "pad" ) );
+  result->setElement( element.attribute( "element" ) );
+  result->setPad( element.attribute( "pad" ) );
   if (element.hasAttribute("route"))  {
     RouteEnum route = routeEnumFromString( element.attribute( "route" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "route" ) << "\" in the \"route\" element";
-      return Contactref();
+      return nullptr;
     } else {
-      result.setRoute( route );
+      result->setRoute( route );
     }
   } else {
-    result.setRoute(routeEnumFromString("all"));
+    result->setRoute(Route_Invalid);
   }
-  result.setRoutetag( element.attribute( "routetag" ) );
+  result->setRoutetag( element.attribute( "routetag" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -1090,12 +1413,33 @@ Contactref Contactref::parseElement( const QDomElement &element, bool *ok )
 
 void Contactref::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "contactref" );
+  xml.writeStartElement( "contactref" );
+  if (!mElement.isEmpty())
+    xml.writeAttribute("element", mElement );
+  if (!mPad.isEmpty())
+    xml.writeAttribute("pad", mPad );
+  if (mRoute != Route_Invalid)
+    xml.writeAttribute("route", routeEnumToString(mRoute));
+  if (!mRoutetag.isEmpty())
+    xml.writeAttribute("routetag", mRoutetag );
+  xml.writeEndElement();
 }
 
 
-void Vertex::setX( double v )
+Vertex::Vertex()
 {
+  mX_set = false;
+  mY_set = false;
+  mCurve_set = false;
+}
+
+Vertex::~Vertex()
+{
+}
+
+void Vertex::setX( const double v )
+{
+  mX_set = true;
   mX = v;
 }
 
@@ -1104,8 +1448,14 @@ double Vertex::x() const
   return mX;
 }
 
-void Vertex::setY( double v )
+bool Vertex::xSet() const
 {
+  return mX_set;
+}
+
+void Vertex::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -1114,8 +1464,14 @@ double Vertex::y() const
   return mY;
 }
 
-void Vertex::setCurve( double v )
+bool Vertex::ySet() const
 {
+  return mY_set;
+}
+
+void Vertex::setCurve( const double v )
+{
+  mCurve_set = true;
   mCurve = v;
 }
 
@@ -1124,19 +1480,27 @@ double Vertex::curve() const
   return mCurve;
 }
 
-Vertex Vertex::parseElement( const QDomElement &element, bool *ok )
+bool Vertex::curveSet() const
+{
+  return mCurve_set;
+}
+
+Vertex *Vertex::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "vertex" ) {
     qCritical() << "Expected 'vertex', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Vertex();
+    return nullptr;
   }
 
-  Vertex result = Vertex();
+  Vertex* result = new Vertex();
 
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setCurve( element.attribute( "curve" ).toDouble() );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("curve"))
+    result->setCurve( element.attribute( "curve" ).toDouble() );
 
   if ( ok ) *ok = true;
   return result;
@@ -1144,12 +1508,36 @@ Vertex Vertex::parseElement( const QDomElement &element, bool *ok )
 
 void Vertex::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "vertex" );
+  xml.writeStartElement( "vertex" );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mCurve_set)
+    xml.writeAttribute("curve", QString::number( mCurve ) );
+  xml.writeEndElement();
 }
 
 
-void Polygon::setWidth( double v )
+Polygon::Polygon()
 {
+  mWidth_set = false;
+  mLayer_set = false;
+  mSpacing_set = false;
+  mPour = Pour_Invalid;
+  mIsolate_set = false;
+  mOrphans = Orphans_Invalid;
+  mThermals = Thermals_Invalid;
+  mRank_set = false;
+}
+
+Polygon::~Polygon()
+{
+}
+
+void Polygon::setWidth( const double v )
+{
+  mWidth_set = true;
   mWidth = v;
 }
 
@@ -1158,8 +1546,14 @@ double Polygon::width() const
   return mWidth;
 }
 
-void Polygon::setLayer( int v )
+bool Polygon::widthSet() const
 {
+  return mWidth_set;
+}
+
+void Polygon::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
@@ -1168,14 +1562,25 @@ int Polygon::layer() const
   return mLayer;
 }
 
-void Polygon::setSpacing( double v )
+bool Polygon::layerSet() const
 {
+  return mLayer_set;
+}
+
+void Polygon::setSpacing( const double v )
+{
+  mSpacing_set = true;
   mSpacing = v;
 }
 
 double Polygon::spacing() const
 {
   return mSpacing;
+}
+
+bool Polygon::spacingSet() const
+{
+  return mSpacing_set;
 }
 
 void Polygon::setPour( const PourEnum &v )
@@ -1188,14 +1593,20 @@ Polygon::PourEnum Polygon::pour() const
   return mPour;
 }
 
-void Polygon::setIsolate( double v )
+void Polygon::setIsolate( const double v )
 {
+  mIsolate_set = true;
   mIsolate = v;
 }
 
 double Polygon::isolate() const
 {
   return mIsolate;
+}
+
+bool Polygon::isolateSet() const
+{
+  return mIsolate_set;
 }
 
 void Polygon::setOrphans( const OrphansEnum &v )
@@ -1218,8 +1629,9 @@ Polygon::ThermalsEnum Polygon::thermals() const
   return mThermals;
 }
 
-void Polygon::setRank( int v )
+void Polygon::setRank( const int v )
 {
+  mRank_set = true;
   mRank = v;
 }
 
@@ -1228,7 +1640,12 @@ int Polygon::rank() const
   return mRank;
 }
 
-void Polygon::addVertex( const Vertex &v )
+bool Polygon::rankSet() const
+{
+  return mRank_set;
+}
+
+void Polygon::addVertex( Vertex* v )
 {
   mVertexList.append( v );
 }
@@ -1330,64 +1747,69 @@ QString Polygon::thermalsEnumToString( const ThermalsEnum & v )
   }
 }
 
-Polygon Polygon::parseElement( const QDomElement &element, bool *ok )
+Polygon *Polygon::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "polygon" ) {
     qCritical() << "Expected 'polygon', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Polygon();
+    return nullptr;
   }
 
-  Polygon result = Polygon();
+  Polygon* result = new Polygon();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "vertex" ) {
       bool ok;
-      Vertex o = Vertex::parseElement( e, &ok );
-      if ( ok ) result.addVertex( o );
+      Vertex *o = Vertex::parseElement( e, &ok );
+      if ( ok ) result->addVertex( o );
     }
   }
 
-  result.setWidth( element.attribute( "width" ).toDouble() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
-  result.setSpacing( element.attribute( "spacing" ).toDouble() );
+  if (element.hasAttribute("width"))
+    result->setWidth( element.attribute( "width" ).toDouble() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
+  if (element.hasAttribute("spacing"))
+    result->setSpacing( element.attribute( "spacing" ).toDouble() );
   if (element.hasAttribute("pour"))  {
     PourEnum pour = pourEnumFromString( element.attribute( "pour" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "pour" ) << "\" in the \"pour\" element";
-      return Polygon();
+      return nullptr;
     } else {
-      result.setPour( pour );
+      result->setPour( pour );
     }
   } else {
-    result.setPour(pourEnumFromString("solid"));
+    result->setPour(Pour_Invalid);
   }
-  result.setIsolate( element.attribute( "isolate" ).toDouble() );
+  if (element.hasAttribute("isolate"))
+    result->setIsolate( element.attribute( "isolate" ).toDouble() );
   if (element.hasAttribute("orphans"))  {
     OrphansEnum orphans = orphansEnumFromString( element.attribute( "orphans" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "orphans" ) << "\" in the \"orphans\" element";
-      return Polygon();
+      return nullptr;
     } else {
-      result.setOrphans( orphans );
+      result->setOrphans( orphans );
     }
   } else {
-    result.setOrphans(orphansEnumFromString("no"));
+    result->setOrphans(Orphans_Invalid);
   }
   if (element.hasAttribute("thermals"))  {
     ThermalsEnum thermals = thermalsEnumFromString( element.attribute( "thermals" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "thermals" ) << "\" in the \"thermals\" element";
-      return Polygon();
+      return nullptr;
     } else {
-      result.setThermals( thermals );
+      result->setThermals( thermals );
     }
   } else {
-    result.setThermals(thermalsEnumFromString("yes"));
+    result->setThermals(Thermals_Invalid);
   }
-  result.setRank( element.attribute( "rank" ).toInt() );
+  if (element.hasAttribute("rank"))
+    result->setRank( element.attribute( "rank" ).toInt() );
 
   if ( ok ) *ok = true;
   return result;
@@ -1396,23 +1818,50 @@ Polygon Polygon::parseElement( const QDomElement &element, bool *ok )
 void Polygon::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "polygon" );
-  xml.writeAttribute("width", QString::number( width() ) );
-  xml.writeAttribute("layer", QString::number( layer() ) );
-  xml.writeAttribute("spacing", QString::number( spacing() ) );
-  xml.writeAttribute("pour", pourEnumToString( pour() ));
-  xml.writeAttribute("isolate", QString::number( isolate() ) );
-  xml.writeAttribute("orphans", orphansEnumToString( orphans() ));
-  xml.writeAttribute("thermals", thermalsEnumToString( thermals() ));
-  xml.writeAttribute("rank", QString::number( rank() ) );
-  foreach( Vertex e, mVertexList ) {
-    e.writeElement( xml );
+  if (mWidth_set)
+    xml.writeAttribute("width", QString::number( mWidth ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  if (mSpacing_set)
+    xml.writeAttribute("spacing", QString::number( mSpacing ) );
+  if (mPour != Pour_Invalid)
+    xml.writeAttribute("pour", pourEnumToString(mPour));
+  if (mIsolate_set)
+    xml.writeAttribute("isolate", QString::number( mIsolate ) );
+  if (mOrphans != Orphans_Invalid)
+    xml.writeAttribute("orphans", orphansEnumToString(mOrphans));
+  if (mThermals != Thermals_Invalid)
+    xml.writeAttribute("thermals", thermalsEnumToString(mThermals));
+  if (mRank_set)
+    xml.writeAttribute("rank", QString::number( mRank ) );
+  foreach( Vertex* e, mVertexList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
 
-void Wire::setX1( double v )
+Wire::Wire()
 {
+  mX1_set = false;
+  mY1_set = false;
+  mX2_set = false;
+  mY2_set = false;
+  mWidth_set = false;
+  mLayer_set = false;
+  mStyle = Style_Invalid;
+  mCurve_set = false;
+  mCap = Cap_Invalid;
+}
+
+Wire::~Wire()
+{
+}
+
+void Wire::setX1( const double v )
+{
+  mX1_set = true;
   mX1 = v;
 }
 
@@ -1421,8 +1870,14 @@ double Wire::x1() const
   return mX1;
 }
 
-void Wire::setY1( double v )
+bool Wire::x1Set() const
 {
+  return mX1_set;
+}
+
+void Wire::setY1( const double v )
+{
+  mY1_set = true;
   mY1 = v;
 }
 
@@ -1431,8 +1886,14 @@ double Wire::y1() const
   return mY1;
 }
 
-void Wire::setX2( double v )
+bool Wire::y1Set() const
 {
+  return mY1_set;
+}
+
+void Wire::setX2( const double v )
+{
+  mX2_set = true;
   mX2 = v;
 }
 
@@ -1441,8 +1902,14 @@ double Wire::x2() const
   return mX2;
 }
 
-void Wire::setY2( double v )
+bool Wire::x2Set() const
 {
+  return mX2_set;
+}
+
+void Wire::setY2( const double v )
+{
+  mY2_set = true;
   mY2 = v;
 }
 
@@ -1451,8 +1918,14 @@ double Wire::y2() const
   return mY2;
 }
 
-void Wire::setWidth( double v )
+bool Wire::y2Set() const
 {
+  return mY2_set;
+}
+
+void Wire::setWidth( const double v )
+{
+  mWidth_set = true;
   mWidth = v;
 }
 
@@ -1461,14 +1934,25 @@ double Wire::width() const
   return mWidth;
 }
 
-void Wire::setLayer( int v )
+bool Wire::widthSet() const
 {
+  return mWidth_set;
+}
+
+void Wire::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
 int Wire::layer() const
 {
   return mLayer;
+}
+
+bool Wire::layerSet() const
+{
+  return mLayer_set;
 }
 
 void Wire::setExtent( const QString &v )
@@ -1491,14 +1975,20 @@ Wire::StyleEnum Wire::style() const
   return mStyle;
 }
 
-void Wire::setCurve( double v )
+void Wire::setCurve( const double v )
 {
+  mCurve_set = true;
   mCurve = v;
 }
 
 double Wire::curve() const
 {
   return mCurve;
+}
+
+bool Wire::curveSet() const
+{
+  return mCurve_set;
 }
 
 void Wire::setCap( const CapEnum &v )
@@ -1573,45 +2063,52 @@ QString Wire::capEnumToString( const CapEnum & v )
   }
 }
 
-Wire Wire::parseElement( const QDomElement &element, bool *ok )
+Wire *Wire::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "wire" ) {
     qCritical() << "Expected 'wire', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Wire();
+    return nullptr;
   }
 
-  Wire result = Wire();
+  Wire* result = new Wire();
 
-  result.setX1( element.attribute( "x1" ).toDouble() );
-  result.setY1( element.attribute( "y1" ).toDouble() );
-  result.setX2( element.attribute( "x2" ).toDouble() );
-  result.setY2( element.attribute( "y2" ).toDouble() );
-  result.setWidth( element.attribute( "width" ).toDouble() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
-  result.setExtent( element.attribute( "extent" ) );
+  if (element.hasAttribute("x1"))
+    result->setX1( element.attribute( "x1" ).toDouble() );
+  if (element.hasAttribute("y1"))
+    result->setY1( element.attribute( "y1" ).toDouble() );
+  if (element.hasAttribute("x2"))
+    result->setX2( element.attribute( "x2" ).toDouble() );
+  if (element.hasAttribute("y2"))
+    result->setY2( element.attribute( "y2" ).toDouble() );
+  if (element.hasAttribute("width"))
+    result->setWidth( element.attribute( "width" ).toDouble() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
+  result->setExtent( element.attribute( "extent" ) );
   if (element.hasAttribute("style"))  {
     StyleEnum style = styleEnumFromString( element.attribute( "style" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "style" ) << "\" in the \"style\" element";
-      return Wire();
+      return nullptr;
     } else {
-      result.setStyle( style );
+      result->setStyle( style );
     }
   } else {
-    result.setStyle(styleEnumFromString("continuous"));
+    result->setStyle(Style_Invalid);
   }
-  result.setCurve( element.attribute( "curve" ).toDouble() );
+  if (element.hasAttribute("curve"))
+    result->setCurve( element.attribute( "curve" ).toDouble() );
   if (element.hasAttribute("cap"))  {
     CapEnum cap = capEnumFromString( element.attribute( "cap" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "cap" ) << "\" in the \"cap\" element";
-      return Wire();
+      return nullptr;
     } else {
-      result.setCap( cap );
+      result->setCap( cap );
     }
   } else {
-    result.setCap(capEnumFromString("round"));
+    result->setCap(Cap_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -1620,9 +2117,40 @@ Wire Wire::parseElement( const QDomElement &element, bool *ok )
 
 void Wire::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "wire" );
+  xml.writeStartElement( "wire" );
+  if (mX1_set)
+    xml.writeAttribute("x1", QString::number( mX1 ) );
+  if (mY1_set)
+    xml.writeAttribute("y1", QString::number( mY1 ) );
+  if (mX2_set)
+    xml.writeAttribute("x2", QString::number( mX2 ) );
+  if (mY2_set)
+    xml.writeAttribute("y2", QString::number( mY2 ) );
+  if (mWidth_set)
+    xml.writeAttribute("width", QString::number( mWidth ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  if (!mExtent.isEmpty())
+    xml.writeAttribute("extent", mExtent );
+  if (mStyle != Style_Invalid)
+    xml.writeAttribute("style", styleEnumToString(mStyle));
+  if (mCurve_set)
+    xml.writeAttribute("curve", QString::number( mCurve ) );
+  if (mCap != Cap_Invalid)
+    xml.writeAttribute("cap", capEnumToString(mCap));
+  xml.writeEndElement();
 }
 
+
+Signal::Signal()
+{
+  mClass_set = false;
+  mAirwireshidden = Airwireshidden_Invalid;
+}
+
+Signal::~Signal()
+{
+}
 
 void Signal::setName( const QString &v )
 {
@@ -1634,14 +2162,20 @@ QString Signal::name() const
   return mName;
 }
 
-void Signal::setClass( int v )
+void Signal::setClass( const int v )
 {
+  mClass_set = true;
   mClass = v;
 }
 
 int Signal::class_() const
 {
   return mClass;
+}
+
+bool Signal::classSet() const
+{
+  return mClass_set;
 }
 
 void Signal::setAirwireshidden( const AirwireshiddenEnum &v )
@@ -1654,7 +2188,7 @@ Signal::AirwireshiddenEnum Signal::airwireshidden() const
   return mAirwireshidden;
 }
 
-void Signal::addContactref( const Contactref &v )
+void Signal::addContactref( Contactref* v )
 {
   mContactrefList.append( v );
 }
@@ -1669,7 +2203,7 @@ Contactref::List *Signal::contactrefList()
   return &mContactrefList;
 }
 
-void Signal::addPolygon( const Polygon &v )
+void Signal::addPolygon( Polygon* v )
 {
   mPolygonList.append( v );
 }
@@ -1684,7 +2218,7 @@ Polygon::List *Signal::polygonList()
   return &mPolygonList;
 }
 
-void Signal::addWire( const Wire &v )
+void Signal::addWire( Wire* v )
 {
   mWireList.append( v );
 }
@@ -1699,7 +2233,7 @@ Wire::List *Signal::wireList()
   return &mWireList;
 }
 
-void Signal::addVia( const Via &v )
+void Signal::addVia( Via* v )
 {
   mViaList.append( v );
 }
@@ -1742,53 +2276,54 @@ QString Signal::airwireshiddenEnumToString( const AirwireshiddenEnum & v )
   }
 }
 
-Signal Signal::parseElement( const QDomElement &element, bool *ok )
+Signal *Signal::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "signal" ) {
     qCritical() << "Expected 'signal', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Signal();
+    return nullptr;
   }
 
-  Signal result = Signal();
+  Signal* result = new Signal();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "contactref" ) {
       bool ok;
-      Contactref o = Contactref::parseElement( e, &ok );
-      if ( ok ) result.addContactref( o );
+      Contactref *o = Contactref::parseElement( e, &ok );
+      if ( ok ) result->addContactref( o );
     }
     else if ( e.tagName() == "polygon" ) {
       bool ok;
-      Polygon o = Polygon::parseElement( e, &ok );
-      if ( ok ) result.addPolygon( o );
+      Polygon *o = Polygon::parseElement( e, &ok );
+      if ( ok ) result->addPolygon( o );
     }
     else if ( e.tagName() == "wire" ) {
       bool ok;
-      Wire o = Wire::parseElement( e, &ok );
-      if ( ok ) result.addWire( o );
+      Wire *o = Wire::parseElement( e, &ok );
+      if ( ok ) result->addWire( o );
     }
     else if ( e.tagName() == "via" ) {
       bool ok;
-      Via o = Via::parseElement( e, &ok );
-      if ( ok ) result.addVia( o );
+      Via *o = Via::parseElement( e, &ok );
+      if ( ok ) result->addVia( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setClass( element.attribute( "class" ).toInt() );
+  result->setName( element.attribute( "name" ) );
+  if (element.hasAttribute("class"))
+    result->setClass( element.attribute( "class" ).toInt() );
   if (element.hasAttribute("airwireshidden"))  {
     AirwireshiddenEnum airwireshidden = airwireshiddenEnumFromString( element.attribute( "airwireshidden" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "airwireshidden" ) << "\" in the \"airwireshidden\" element";
-      return Signal();
+      return nullptr;
     } else {
-      result.setAirwireshidden( airwireshidden );
+      result->setAirwireshidden( airwireshidden );
     }
   } else {
-    result.setAirwireshidden(airwireshiddenEnumFromString("no"));
+    result->setAirwireshidden(Airwireshidden_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -1798,26 +2333,41 @@ Signal Signal::parseElement( const QDomElement &element, bool *ok )
 void Signal::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "signal" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("class", QString::number( class_() ) );
-  xml.writeAttribute("airwireshidden", airwireshiddenEnumToString( airwireshidden() ));
-  foreach( Contactref e, mContactrefList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (mClass_set)
+    xml.writeAttribute("class", QString::number( mClass ) );
+  if (mAirwireshidden != Airwireshidden_Invalid)
+    xml.writeAttribute("airwireshidden", airwireshiddenEnumToString(mAirwireshidden));
+  foreach( Contactref* e, mContactrefList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Polygon e, mPolygonList ) {
-    e.writeElement( xml );
+  foreach( Polygon* e, mPolygonList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Wire e, mWireList ) {
-    e.writeElement( xml );
+  foreach( Wire* e, mWireList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Via e, mViaList ) {
-    e.writeElement( xml );
+  foreach( Via* e, mViaList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
 
-void Signals::addSignal( const Signal &v )
+Signals::Signals()
+{
+}
+
+Signals::~Signals()
+{
+}
+
+void Signals::addSignal( Signal* v )
 {
   mSignalList.append( v );
 }
@@ -1832,23 +2382,23 @@ Signal::List *Signals::signalList()
   return &mSignalList;
 }
 
-Signals Signals::parseElement( const QDomElement &element, bool *ok )
+Signals *Signals::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "signals" ) {
     qCritical() << "Expected 'signals', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Signals();
+    return nullptr;
   }
 
-  Signals result = Signals();
+  Signals* result = new Signals();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "signal" ) {
       bool ok;
-      Signal o = Signal::parseElement( e, &ok );
-      if ( ok ) result.addSignal( o );
+      Signal *o = Signal::parseElement( e, &ok );
+      if ( ok ) result->addSignal( o );
     }
   }
 
@@ -1861,13 +2411,33 @@ void Signals::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mSignalList.isEmpty() ) {
     xml.writeStartElement( "signals" );
-    foreach( Signal e, mSignalList ) {
-      e.writeElement( xml );
+    foreach( Signal* e, mSignalList ) {
+      if (e) {
+          qWarning() << e->name();
+        e->writeElement( xml );
+      }
     }
     xml.writeEndElement();
   }
 }
 
+
+Attribute::Attribute()
+{
+  mX_set = false;
+  mY_set = false;
+  mSize_set = false;
+  mLayer_set = false;
+  mFont = Font_Invalid;
+  mRatio_set = false;
+  mDisplay = Display_Invalid;
+  mConstant = Constant_Invalid;
+  mAlign = Align_Invalid;
+}
+
+Attribute::~Attribute()
+{
+}
 
 void Attribute::setName( const QString &v )
 {
@@ -1889,8 +2459,9 @@ QString Attribute::value() const
   return mValue;
 }
 
-void Attribute::setX( double v )
+void Attribute::setX( const double v )
 {
+  mX_set = true;
   mX = v;
 }
 
@@ -1899,8 +2470,14 @@ double Attribute::x() const
   return mX;
 }
 
-void Attribute::setY( double v )
+bool Attribute::xSet() const
 {
+  return mX_set;
+}
+
+void Attribute::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -1909,8 +2486,14 @@ double Attribute::y() const
   return mY;
 }
 
-void Attribute::setSize( double v )
+bool Attribute::ySet() const
 {
+  return mY_set;
+}
+
+void Attribute::setSize( const double v )
+{
+  mSize_set = true;
   mSize = v;
 }
 
@@ -1919,14 +2502,25 @@ double Attribute::size() const
   return mSize;
 }
 
-void Attribute::setLayer( int v )
+bool Attribute::sizeSet() const
 {
+  return mSize_set;
+}
+
+void Attribute::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
 int Attribute::layer() const
 {
   return mLayer;
+}
+
+bool Attribute::layerSet() const
+{
+  return mLayer_set;
 }
 
 void Attribute::setFont( const FontEnum &v )
@@ -1939,14 +2533,20 @@ Attribute::FontEnum Attribute::font() const
   return mFont;
 }
 
-void Attribute::setRatio( int v )
+void Attribute::setRatio( const int v )
 {
+  mRatio_set = true;
   mRatio = v;
 }
 
 int Attribute::ratio() const
 {
   return mRatio;
+}
+
+bool Attribute::ratioSet() const
+{
+  return mRatio_set;
 }
 
 void Attribute::setRot( const QString &v )
@@ -2131,67 +2731,72 @@ QString Attribute::alignEnumToString( const AlignEnum & v )
   }
 }
 
-Attribute Attribute::parseElement( const QDomElement &element, bool *ok )
+Attribute *Attribute::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "attribute" ) {
     qCritical() << "Expected 'attribute', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Attribute();
+    return nullptr;
   }
 
-  Attribute result = Attribute();
+  Attribute* result = new Attribute();
 
-  result.setName( element.attribute( "name" ) );
-  result.setValue( element.attribute( "value" ) );
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setSize( element.attribute( "size" ).toDouble() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
+  result->setName( element.attribute( "name" ) );
+  result->setValue( element.attribute( "value" ) );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("size"))
+    result->setSize( element.attribute( "size" ).toDouble() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("font"))  {
     FontEnum font = fontEnumFromString( element.attribute( "font" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "font" ) << "\" in the \"font\" element";
-      return Attribute();
+      return nullptr;
     } else {
-      result.setFont( font );
+      result->setFont( font );
     }
   } else {
-    result.setFont(fontEnumFromString(""));
+    result->setFont(Font_Invalid);
   }
-  result.setRatio( element.attribute( "ratio" ).toInt() );
-  result.setRot( element.attribute( "rot" ) );
+  if (element.hasAttribute("ratio"))
+    result->setRatio( element.attribute( "ratio" ).toInt() );
+  result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("display"))  {
     DisplayEnum display = displayEnumFromString( element.attribute( "display" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "display" ) << "\" in the \"display\" element";
-      return Attribute();
+      return nullptr;
     } else {
-      result.setDisplay( display );
+      result->setDisplay( display );
     }
   } else {
-    result.setDisplay(displayEnumFromString("value"));
+    result->setDisplay(Display_Invalid);
   }
   if (element.hasAttribute("constant"))  {
     ConstantEnum constant = constantEnumFromString( element.attribute( "constant" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "constant" ) << "\" in the \"constant\" element";
-      return Attribute();
+      return nullptr;
     } else {
-      result.setConstant( constant );
+      result->setConstant( constant );
     }
   } else {
-    result.setConstant(constantEnumFromString("no"));
+    result->setConstant(Constant_Invalid);
   }
   if (element.hasAttribute("align"))  {
     AlignEnum align = alignEnumFromString( element.attribute( "align" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "align" ) << "\" in the \"align\" element";
-      return Attribute();
+      return nullptr;
     } else {
-      result.setAlign( align );
+      result->setAlign( align );
     }
   } else {
-    result.setAlign(alignEnumFromString("bottom-left"));
+    result->setAlign(Align_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -2200,9 +2805,43 @@ Attribute Attribute::parseElement( const QDomElement &element, bool *ok )
 
 void Attribute::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "attribute" );
+  xml.writeStartElement( "attribute" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mValue.isEmpty())
+    xml.writeAttribute("value", mValue );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mSize_set)
+    xml.writeAttribute("size", QString::number( mSize ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  if (mFont != Font_Invalid)
+    xml.writeAttribute("font", fontEnumToString(mFont));
+  if (mRatio_set)
+    xml.writeAttribute("ratio", QString::number( mRatio ) );
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  if (mDisplay != Display_Invalid)
+    xml.writeAttribute("display", displayEnumToString(mDisplay));
+  if (mConstant != Constant_Invalid)
+    xml.writeAttribute("constant", constantEnumToString(mConstant));
+  if (mAlign != Align_Invalid)
+    xml.writeAttribute("align", alignEnumToString(mAlign));
+  xml.writeEndElement();
 }
 
+
+Variant::Variant()
+{
+  mPopulate = Populate_Invalid;
+}
+
+Variant::~Variant()
+{
+}
 
 void Variant::setName( const QString &v )
 {
@@ -2272,30 +2911,30 @@ QString Variant::populateEnumToString( const PopulateEnum & v )
   }
 }
 
-Variant Variant::parseElement( const QDomElement &element, bool *ok )
+Variant *Variant::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "variant" ) {
     qCritical() << "Expected 'variant', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Variant();
+    return nullptr;
   }
 
-  Variant result = Variant();
+  Variant* result = new Variant();
 
-  result.setName( element.attribute( "name" ) );
+  result->setName( element.attribute( "name" ) );
   if (element.hasAttribute("populate"))  {
     PopulateEnum populate = populateEnumFromString( element.attribute( "populate" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "populate" ) << "\" in the \"populate\" element";
-      return Variant();
+      return nullptr;
     } else {
-      result.setPopulate( populate );
+      result->setPopulate( populate );
     }
   } else {
-    result.setPopulate(populateEnumFromString("yes"));
+    result->setPopulate(Populate_Invalid);
   }
-  result.setValue( element.attribute( "value" ) );
-  result.setTechnology( element.attribute( "technology" ) );
+  result->setValue( element.attribute( "value" ) );
+  result->setTechnology( element.attribute( "technology" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -2303,9 +2942,31 @@ Variant Variant::parseElement( const QDomElement &element, bool *ok )
 
 void Variant::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "variant" );
+  xml.writeStartElement( "variant" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (mPopulate != Populate_Invalid)
+    xml.writeAttribute("populate", populateEnumToString(mPopulate));
+  if (!mValue.isEmpty())
+    xml.writeAttribute("value", mValue );
+  if (!mTechnology.isEmpty())
+    xml.writeAttribute("technology", mTechnology );
+  xml.writeEndElement();
 }
 
+
+Element::Element()
+{
+  mX_set = false;
+  mY_set = false;
+  mLocked = Locked_Invalid;
+  mPopulate = Populate_Invalid;
+  mSmashed = Smashed_Invalid;
+}
+
+Element::~Element()
+{
+}
 
 void Element::setName( const QString &v )
 {
@@ -2367,8 +3028,9 @@ QString Element::value() const
   return mValue;
 }
 
-void Element::setX( double v )
+void Element::setX( const double v )
 {
+  mX_set = true;
   mX = v;
 }
 
@@ -2377,14 +3039,25 @@ double Element::x() const
   return mX;
 }
 
-void Element::setY( double v )
+bool Element::xSet() const
 {
+  return mX_set;
+}
+
+void Element::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
 double Element::y() const
 {
   return mY;
+}
+
+bool Element::ySet() const
+{
+  return mY_set;
 }
 
 void Element::setLocked( const LockedEnum &v )
@@ -2427,7 +3100,7 @@ QString Element::rot() const
   return mRot;
 }
 
-void Element::addAttribute( const Attribute &v )
+void Element::addAttribute( Attribute* v )
 {
   mAttributeList.append( v );
 }
@@ -2442,7 +3115,7 @@ Attribute::List *Element::attributeList()
   return &mAttributeList;
 }
 
-void Element::addVariant( const Variant &v )
+void Element::addVariant( Variant* v )
 {
   mVariantList.append( v );
 }
@@ -2541,73 +3214,75 @@ QString Element::smashedEnumToString( const SmashedEnum & v )
   }
 }
 
-Element Element::parseElement( const QDomElement &element, bool *ok )
+Element *Element::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "element" ) {
     qCritical() << "Expected 'element', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Element();
+    return nullptr;
   }
 
-  Element result = Element();
+  Element* result = new Element();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "attribute" ) {
       bool ok;
-      Attribute o = Attribute::parseElement( e, &ok );
-      if ( ok ) result.addAttribute( o );
+      Attribute *o = Attribute::parseElement( e, &ok );
+      if ( ok ) result->addAttribute( o );
     }
     else if ( e.tagName() == "variant" ) {
       bool ok;
-      Variant o = Variant::parseElement( e, &ok );
-      if ( ok ) result.addVariant( o );
+      Variant *o = Variant::parseElement( e, &ok );
+      if ( ok ) result->addVariant( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setLibrary( element.attribute( "library" ) );
-  result.setLibraryUrn( element.attribute( "library_urn" ) );
-  result.setPackage( element.attribute( "package" ) );
-  result.setPackage3dUrn( element.attribute( "package3d_urn" ) );
-  result.setValue( element.attribute( "value" ) );
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
+  result->setName( element.attribute( "name" ) );
+  result->setLibrary( element.attribute( "library" ) );
+  result->setLibraryUrn( element.attribute( "library_urn" ) );
+  result->setPackage( element.attribute( "package" ) );
+  result->setPackage3dUrn( element.attribute( "package3d_urn" ) );
+  result->setValue( element.attribute( "value" ) );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
   if (element.hasAttribute("locked"))  {
     LockedEnum locked = lockedEnumFromString( element.attribute( "locked" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "locked" ) << "\" in the \"locked\" element";
-      return Element();
+      return nullptr;
     } else {
-      result.setLocked( locked );
+      result->setLocked( locked );
     }
   } else {
-    result.setLocked(lockedEnumFromString("no"));
+    result->setLocked(Locked_Invalid);
   }
   if (element.hasAttribute("populate"))  {
     PopulateEnum populate = populateEnumFromString( element.attribute( "populate" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "populate" ) << "\" in the \"populate\" element";
-      return Element();
+      return nullptr;
     } else {
-      result.setPopulate( populate );
+      result->setPopulate( populate );
     }
   } else {
-    result.setPopulate(populateEnumFromString("yes"));
+    result->setPopulate(Populate_Invalid);
   }
   if (element.hasAttribute("smashed"))  {
     SmashedEnum smashed = smashedEnumFromString( element.attribute( "smashed" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "smashed" ) << "\" in the \"smashed\" element";
-      return Element();
+      return nullptr;
     } else {
-      result.setSmashed( smashed );
+      result->setSmashed( smashed );
     }
   } else {
-    result.setSmashed(smashedEnumFromString("no"));
+    result->setSmashed(Smashed_Invalid);
   }
-  result.setRot( element.attribute( "rot" ) );
+  result->setRot( element.attribute( "rot" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -2616,29 +3291,51 @@ Element Element::parseElement( const QDomElement &element, bool *ok )
 void Element::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "element" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("library", library() );
-  xml.writeAttribute("library_urn", libraryUrn() );
-  xml.writeAttribute("package", package() );
-  xml.writeAttribute("package3d_urn", package3dUrn() );
-  xml.writeAttribute("value", value() );
-  xml.writeAttribute("x", QString::number( x() ) );
-  xml.writeAttribute("y", QString::number( y() ) );
-  xml.writeAttribute("locked", lockedEnumToString( locked() ));
-  xml.writeAttribute("populate", populateEnumToString( populate() ));
-  xml.writeAttribute("smashed", smashedEnumToString( smashed() ));
-  xml.writeAttribute("rot", rot() );
-  foreach( Attribute e, mAttributeList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mLibrary.isEmpty())
+    xml.writeAttribute("library", mLibrary );
+  if (!mLibraryUrn.isEmpty())
+    xml.writeAttribute("library_urn", mLibraryUrn );
+  if (!mPackage.isEmpty())
+    xml.writeAttribute("package", mPackage );
+  if (!mPackage3dUrn.isEmpty())
+    xml.writeAttribute("package3d_urn", mPackage3dUrn );
+  if (!mValue.isEmpty())
+    xml.writeAttribute("value", mValue );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mLocked != Locked_Invalid)
+    xml.writeAttribute("locked", lockedEnumToString(mLocked));
+  if (mPopulate != Populate_Invalid)
+    xml.writeAttribute("populate", populateEnumToString(mPopulate));
+  if (mSmashed != Smashed_Invalid)
+    xml.writeAttribute("smashed", smashedEnumToString(mSmashed));
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  foreach( Attribute* e, mAttributeList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Variant e, mVariantList ) {
-    e.writeElement( xml );
+  foreach( Variant* e, mVariantList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
 
-void Elements::addElement( const Element &v )
+Elements::Elements()
+{
+}
+
+Elements::~Elements()
+{
+}
+
+void Elements::addElement( Element* v )
 {
   mElementList.append( v );
 }
@@ -2653,23 +3350,23 @@ Element::List *Elements::elementList()
   return &mElementList;
 }
 
-Elements Elements::parseElement( const QDomElement &element, bool *ok )
+Elements *Elements::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "elements" ) {
     qCritical() << "Expected 'elements', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Elements();
+    return nullptr;
   }
 
-  Elements result = Elements();
+  Elements* result = new Elements();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "element" ) {
       bool ok;
-      Element o = Element::parseElement( e, &ok );
-      if ( ok ) result.addElement( o );
+      Element *o = Element::parseElement( e, &ok );
+      if ( ok ) result->addElement( o );
     }
   }
 
@@ -2682,13 +3379,22 @@ void Elements::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mElementList.isEmpty() ) {
     xml.writeStartElement( "elements" );
-    foreach( Element e, mElementList ) {
-      e.writeElement( xml );
+    foreach( Element* e, mElementList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Param::Param()
+{
+}
+
+Param::~Param()
+{
+}
 
 void Param::setName( const QString &v )
 {
@@ -2710,18 +3416,18 @@ QString Param::value() const
   return mValue;
 }
 
-Param Param::parseElement( const QDomElement &element, bool *ok )
+Param *Param::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "param" ) {
     qCritical() << "Expected 'param', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Param();
+    return nullptr;
   }
 
-  Param result = Param();
+  Param* result = new Param();
 
-  result.setName( element.attribute( "name" ) );
-  result.setValue( element.attribute( "value" ) );
+  result->setName( element.attribute( "name" ) );
+  result->setValue( element.attribute( "value" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -2729,9 +3435,23 @@ Param Param::parseElement( const QDomElement &element, bool *ok )
 
 void Param::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "param" );
+  xml.writeStartElement( "param" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mValue.isEmpty())
+    xml.writeAttribute("value", mValue );
+  xml.writeEndElement();
 }
 
+
+Pass::Pass()
+{
+  mActive = Active_Invalid;
+}
+
+Pass::~Pass()
+{
+}
 
 void Pass::setName( const QString &v )
 {
@@ -2763,7 +3483,7 @@ Pass::ActiveEnum Pass::active() const
   return mActive;
 }
 
-void Pass::addParam( const Param &v )
+void Pass::addParam( Param* v )
 {
   mParamList.append( v );
 }
@@ -2806,38 +3526,38 @@ QString Pass::activeEnumToString( const ActiveEnum & v )
   }
 }
 
-Pass Pass::parseElement( const QDomElement &element, bool *ok )
+Pass *Pass::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "pass" ) {
     qCritical() << "Expected 'pass', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Pass();
+    return nullptr;
   }
 
-  Pass result = Pass();
+  Pass* result = new Pass();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "param" ) {
       bool ok;
-      Param o = Param::parseElement( e, &ok );
-      if ( ok ) result.addParam( o );
+      Param *o = Param::parseElement( e, &ok );
+      if ( ok ) result->addParam( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setRefer( element.attribute( "refer" ) );
+  result->setName( element.attribute( "name" ) );
+  result->setRefer( element.attribute( "refer" ) );
   if (element.hasAttribute("active"))  {
     ActiveEnum active = activeEnumFromString( element.attribute( "active" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "active" ) << "\" in the \"active\" element";
-      return Pass();
+      return nullptr;
     } else {
-      result.setActive( active );
+      result->setActive( active );
     }
   } else {
-    result.setActive(activeEnumFromString("yes"));
+    result->setActive(Active_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -2847,17 +3567,29 @@ Pass Pass::parseElement( const QDomElement &element, bool *ok )
 void Pass::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "pass" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("refer", refer() );
-  xml.writeAttribute("active", activeEnumToString( active() ));
-  foreach( Param e, mParamList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mRefer.isEmpty())
+    xml.writeAttribute("refer", mRefer );
+  if (mActive != Active_Invalid)
+    xml.writeAttribute("active", activeEnumToString(mActive));
+  foreach( Param* e, mParamList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
 
-void Autorouter::addPass( const Pass &v )
+Autorouter::Autorouter()
+{
+}
+
+Autorouter::~Autorouter()
+{
+}
+
+void Autorouter::addPass( Pass* v )
 {
   mPassList.append( v );
 }
@@ -2872,23 +3604,23 @@ Pass::List *Autorouter::passList()
   return &mPassList;
 }
 
-Autorouter Autorouter::parseElement( const QDomElement &element, bool *ok )
+Autorouter *Autorouter::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "autorouter" ) {
     qCritical() << "Expected 'autorouter', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Autorouter();
+    return nullptr;
   }
 
-  Autorouter result = Autorouter();
+  Autorouter* result = new Autorouter();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "pass" ) {
       bool ok;
-      Pass o = Pass::parseElement( e, &ok );
-      if ( ok ) result.addPass( o );
+      Pass *o = Pass::parseElement( e, &ok );
+      if ( ok ) result->addPass( o );
     }
   }
 
@@ -2901,13 +3633,22 @@ void Autorouter::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mPassList.isEmpty() ) {
     xml.writeStartElement( "autorouter" );
-    foreach( Pass e, mPassList ) {
-      e.writeElement( xml );
+    foreach( Pass* e, mPassList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Description::Description()
+{
+}
+
+Description::~Description()
+{
+}
 
 void Description::setLanguage( const QString &v )
 {
@@ -2929,18 +3670,18 @@ QString Description::value() const
   return mValue;
 }
 
-Description Description::parseElement( const QDomElement &element, bool *ok )
+Description *Description::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "description" ) {
     qCritical() << "Expected 'description', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Description();
+    return nullptr;
   }
 
-  Description result = Description();
+  Description* result = new Description();
 
-  result.setValue( element.text() );
-  result.setLanguage( element.attribute( "language" ) );
+  result->setValue( element.text() );
+  result->setLanguage( element.attribute( "language" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -2950,12 +3691,21 @@ void Description::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !value().isEmpty() ) {
     xml.writeStartElement( "description" );
-  xml.writeAttribute("language", language() );
+  if (!mLanguage.isEmpty())
+    xml.writeAttribute("language", mLanguage );
     xml.writeCharacters( value() );
     xml.writeEndElement();
   }
 }
 
+
+Designrules::Designrules()
+{
+}
+
+Designrules::~Designrules()
+{
+}
 
 void Designrules::setName( const QString &v )
 {
@@ -2967,7 +3717,7 @@ QString Designrules::name() const
   return mName;
 }
 
-void Designrules::addDescription( const Description &v )
+void Designrules::addDescription( Description* v )
 {
   mDescriptionList.append( v );
 }
@@ -2982,7 +3732,7 @@ Description::List *Designrules::descriptionList()
   return &mDescriptionList;
 }
 
-void Designrules::addParam( const Param &v )
+void Designrules::addParam( Param* v )
 {
   mParamList.append( v );
 }
@@ -2997,32 +3747,32 @@ Param::List *Designrules::paramList()
   return &mParamList;
 }
 
-Designrules Designrules::parseElement( const QDomElement &element, bool *ok )
+Designrules *Designrules::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "designrules" ) {
     qCritical() << "Expected 'designrules', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Designrules();
+    return nullptr;
   }
 
-  Designrules result = Designrules();
+  Designrules* result = new Designrules();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "description" ) {
       bool ok;
-      Description o = Description::parseElement( e, &ok );
-      if ( ok ) result.addDescription( o );
+      Description *o = Description::parseElement( e, &ok );
+      if ( ok ) result->addDescription( o );
     }
     else if ( e.tagName() == "param" ) {
       bool ok;
-      Param o = Param::parseElement( e, &ok );
-      if ( ok ) result.addParam( o );
+      Param *o = Param::parseElement( e, &ok );
+      if ( ok ) result->addParam( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
+  result->setName( element.attribute( "name" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -3031,16 +3781,27 @@ Designrules Designrules::parseElement( const QDomElement &element, bool *ok )
 void Designrules::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "designrules" );
-  xml.writeAttribute("name", name() );
-  foreach( Description e, mDescriptionList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  foreach( Description* e, mDescriptionList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Param e, mParamList ) {
-    e.writeElement( xml );
+  foreach( Param* e, mParamList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
+
+Fusionsync::Fusionsync()
+{
+}
+
+Fusionsync::~Fusionsync()
+{
+}
 
 void Fusionsync::setHuburn( const QString &v )
 {
@@ -3102,22 +3863,22 @@ QString Fusionsync::lastpulledtime() const
   return mLastpulledtime;
 }
 
-Fusionsync Fusionsync::parseElement( const QDomElement &element, bool *ok )
+Fusionsync *Fusionsync::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "fusionsync" ) {
     qCritical() << "Expected 'fusionsync', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Fusionsync();
+    return nullptr;
   }
 
-  Fusionsync result = Fusionsync();
+  Fusionsync* result = new Fusionsync();
 
-  result.setHuburn( element.attribute( "huburn" ) );
-  result.setProjecturn( element.attribute( "projecturn" ) );
-  result.setF3durn( element.attribute( "f3durn" ) );
-  result.setPcbguid( element.attribute( "pcbguid" ) );
-  result.setLastsyncedchangeguid( element.attribute( "lastsyncedchangeguid" ) );
-  result.setLastpulledtime( element.attribute( "lastpulledtime" ) );
+  result->setHuburn( element.attribute( "huburn" ) );
+  result->setProjecturn( element.attribute( "projecturn" ) );
+  result->setF3durn( element.attribute( "f3durn" ) );
+  result->setPcbguid( element.attribute( "pcbguid" ) );
+  result->setLastsyncedchangeguid( element.attribute( "lastsyncedchangeguid" ) );
+  result->setLastpulledtime( element.attribute( "lastpulledtime" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -3125,12 +3886,42 @@ Fusionsync Fusionsync::parseElement( const QDomElement &element, bool *ok )
 
 void Fusionsync::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "fusionsync" );
+  xml.writeStartElement( "fusionsync" );
+  if (!mHuburn.isEmpty())
+    xml.writeAttribute("huburn", mHuburn );
+  if (!mProjecturn.isEmpty())
+    xml.writeAttribute("projecturn", mProjecturn );
+  if (!mF3durn.isEmpty())
+    xml.writeAttribute("f3durn", mF3durn );
+  if (!mPcbguid.isEmpty())
+    xml.writeAttribute("pcbguid", mPcbguid );
+  if (!mLastsyncedchangeguid.isEmpty())
+    xml.writeAttribute("lastsyncedchangeguid", mLastsyncedchangeguid );
+  if (!mLastpulledtime.isEmpty())
+    xml.writeAttribute("lastpulledtime", mLastpulledtime );
+  xml.writeEndElement();
 }
 
 
-void Text::setX( double v )
+Text::Text()
 {
+  mX_set = false;
+  mY_set = false;
+  mSize_set = false;
+  mLayer_set = false;
+  mFont = Font_Invalid;
+  mRatio_set = false;
+  mAlign = Align_Invalid;
+  mDistance_set = false;
+}
+
+Text::~Text()
+{
+}
+
+void Text::setX( const double v )
+{
+  mX_set = true;
   mX = v;
 }
 
@@ -3139,8 +3930,14 @@ double Text::x() const
   return mX;
 }
 
-void Text::setY( double v )
+bool Text::xSet() const
 {
+  return mX_set;
+}
+
+void Text::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -3149,8 +3946,14 @@ double Text::y() const
   return mY;
 }
 
-void Text::setSize( double v )
+bool Text::ySet() const
 {
+  return mY_set;
+}
+
+void Text::setSize( const double v )
+{
+  mSize_set = true;
   mSize = v;
 }
 
@@ -3159,14 +3962,25 @@ double Text::size() const
   return mSize;
 }
 
-void Text::setLayer( int v )
+bool Text::sizeSet() const
 {
+  return mSize_set;
+}
+
+void Text::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
 int Text::layer() const
 {
   return mLayer;
+}
+
+bool Text::layerSet() const
+{
+  return mLayer_set;
 }
 
 void Text::setFont( const FontEnum &v )
@@ -3179,14 +3993,20 @@ Text::FontEnum Text::font() const
   return mFont;
 }
 
-void Text::setRatio( int v )
+void Text::setRatio( const int v )
 {
+  mRatio_set = true;
   mRatio = v;
 }
 
 int Text::ratio() const
 {
   return mRatio;
+}
+
+bool Text::ratioSet() const
+{
+  return mRatio_set;
 }
 
 void Text::setRot( const QString &v )
@@ -3209,14 +4029,20 @@ Text::AlignEnum Text::align() const
   return mAlign;
 }
 
-void Text::setDistance( int v )
+void Text::setDistance( const int v )
 {
+  mDistance_set = true;
   mDistance = v;
 }
 
 int Text::distance() const
 {
   return mDistance;
+}
+
+bool Text::distanceSet() const
+{
+  return mDistance_set;
 }
 
 void Text::setValue( const QString &v )
@@ -3309,46 +4135,52 @@ QString Text::alignEnumToString( const AlignEnum & v )
   }
 }
 
-Text Text::parseElement( const QDomElement &element, bool *ok )
+Text *Text::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "text" ) {
     qCritical() << "Expected 'text', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Text();
+    return nullptr;
   }
 
-  Text result = Text();
+  Text* result = new Text();
 
-  result.setValue( element.text() );
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setSize( element.attribute( "size" ).toDouble() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
+  result->setValue( element.text() );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("size"))
+    result->setSize( element.attribute( "size" ).toDouble() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("font"))  {
     FontEnum font = fontEnumFromString( element.attribute( "font" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "font" ) << "\" in the \"font\" element";
-      return Text();
+      return nullptr;
     } else {
-      result.setFont( font );
+      result->setFont( font );
     }
   } else {
-    result.setFont(fontEnumFromString("proportional"));
+    result->setFont(Font_Invalid);
   }
-  result.setRatio( element.attribute( "ratio" ).toInt() );
-  result.setRot( element.attribute( "rot" ) );
+  if (element.hasAttribute("ratio"))
+    result->setRatio( element.attribute( "ratio" ).toInt() );
+  result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("align"))  {
     AlignEnum align = alignEnumFromString( element.attribute( "align" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "align" ) << "\" in the \"align\" element";
-      return Text();
+      return nullptr;
     } else {
-      result.setAlign( align );
+      result->setAlign( align );
     }
   } else {
-    result.setAlign(alignEnumFromString("bottom-left"));
+    result->setAlign(Align_Invalid);
   }
-  result.setDistance( element.attribute( "distance" ).toInt() );
+  if (element.hasAttribute("distance"))
+    result->setDistance( element.attribute( "distance" ).toInt() );
 
   if ( ok ) *ok = true;
   return result;
@@ -3358,23 +4190,58 @@ void Text::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !value().isEmpty() ) {
     xml.writeStartElement( "text" );
-  xml.writeAttribute("x", QString::number( x() ) );
-  xml.writeAttribute("y", QString::number( y() ) );
-  xml.writeAttribute("size", QString::number( size() ) );
-  xml.writeAttribute("layer", QString::number( layer() ) );
-  xml.writeAttribute("font", fontEnumToString( font() ));
-  xml.writeAttribute("ratio", QString::number( ratio() ) );
-  xml.writeAttribute("rot", rot() );
-  xml.writeAttribute("align", alignEnumToString( align() ));
-  xml.writeAttribute("distance", QString::number( distance() ) );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mSize_set)
+    xml.writeAttribute("size", QString::number( mSize ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  if (mFont != Font_Invalid)
+    xml.writeAttribute("font", fontEnumToString(mFont));
+  if (mRatio_set)
+    xml.writeAttribute("ratio", QString::number( mRatio ) );
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  if (mAlign != Align_Invalid)
+    xml.writeAttribute("align", alignEnumToString(mAlign));
+  if (mDistance_set)
+    xml.writeAttribute("distance", QString::number( mDistance ) );
     xml.writeCharacters( value() );
     xml.writeEndElement();
   }
 }
 
 
-void Dimension::setX1( double v )
+Dimension::Dimension()
 {
+  mX1_set = false;
+  mY1_set = false;
+  mX2_set = false;
+  mY2_set = false;
+  mX3_set = false;
+  mY3_set = false;
+  mLayer_set = false;
+  mDtype = Dtype_Invalid;
+  mWidth_set = false;
+  mExtwidth_set = false;
+  mExtlength_set = false;
+  mExtoffset_set = false;
+  mTextsize_set = false;
+  mTextratio_set = false;
+  mUnit = Unit_Invalid;
+  mPrecision_set = false;
+  mVisible = Visible_Invalid;
+}
+
+Dimension::~Dimension()
+{
+}
+
+void Dimension::setX1( const double v )
+{
+  mX1_set = true;
   mX1 = v;
 }
 
@@ -3383,8 +4250,14 @@ double Dimension::x1() const
   return mX1;
 }
 
-void Dimension::setY1( double v )
+bool Dimension::x1Set() const
 {
+  return mX1_set;
+}
+
+void Dimension::setY1( const double v )
+{
+  mY1_set = true;
   mY1 = v;
 }
 
@@ -3393,8 +4266,14 @@ double Dimension::y1() const
   return mY1;
 }
 
-void Dimension::setX2( double v )
+bool Dimension::y1Set() const
 {
+  return mY1_set;
+}
+
+void Dimension::setX2( const double v )
+{
+  mX2_set = true;
   mX2 = v;
 }
 
@@ -3403,8 +4282,14 @@ double Dimension::x2() const
   return mX2;
 }
 
-void Dimension::setY2( double v )
+bool Dimension::x2Set() const
 {
+  return mX2_set;
+}
+
+void Dimension::setY2( const double v )
+{
+  mY2_set = true;
   mY2 = v;
 }
 
@@ -3413,8 +4298,14 @@ double Dimension::y2() const
   return mY2;
 }
 
-void Dimension::setX3( double v )
+bool Dimension::y2Set() const
 {
+  return mY2_set;
+}
+
+void Dimension::setX3( const double v )
+{
+  mX3_set = true;
   mX3 = v;
 }
 
@@ -3423,8 +4314,14 @@ double Dimension::x3() const
   return mX3;
 }
 
-void Dimension::setY3( double v )
+bool Dimension::x3Set() const
 {
+  return mX3_set;
+}
+
+void Dimension::setY3( const double v )
+{
+  mY3_set = true;
   mY3 = v;
 }
 
@@ -3433,14 +4330,25 @@ double Dimension::y3() const
   return mY3;
 }
 
-void Dimension::setLayer( int v )
+bool Dimension::y3Set() const
 {
+  return mY3_set;
+}
+
+void Dimension::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
 int Dimension::layer() const
 {
   return mLayer;
+}
+
+bool Dimension::layerSet() const
+{
+  return mLayer_set;
 }
 
 void Dimension::setDtype( const DtypeEnum &v )
@@ -3453,8 +4361,9 @@ Dimension::DtypeEnum Dimension::dtype() const
   return mDtype;
 }
 
-void Dimension::setWidth( double v )
+void Dimension::setWidth( const double v )
 {
+  mWidth_set = true;
   mWidth = v;
 }
 
@@ -3463,8 +4372,14 @@ double Dimension::width() const
   return mWidth;
 }
 
-void Dimension::setExtwidth( double v )
+bool Dimension::widthSet() const
 {
+  return mWidth_set;
+}
+
+void Dimension::setExtwidth( const double v )
+{
+  mExtwidth_set = true;
   mExtwidth = v;
 }
 
@@ -3473,8 +4388,14 @@ double Dimension::extwidth() const
   return mExtwidth;
 }
 
-void Dimension::setExtlength( double v )
+bool Dimension::extwidthSet() const
 {
+  return mExtwidth_set;
+}
+
+void Dimension::setExtlength( const double v )
+{
+  mExtlength_set = true;
   mExtlength = v;
 }
 
@@ -3483,8 +4404,14 @@ double Dimension::extlength() const
   return mExtlength;
 }
 
-void Dimension::setExtoffset( double v )
+bool Dimension::extlengthSet() const
 {
+  return mExtlength_set;
+}
+
+void Dimension::setExtoffset( const double v )
+{
+  mExtoffset_set = true;
   mExtoffset = v;
 }
 
@@ -3493,8 +4420,14 @@ double Dimension::extoffset() const
   return mExtoffset;
 }
 
-void Dimension::setTextsize( double v )
+bool Dimension::extoffsetSet() const
 {
+  return mExtoffset_set;
+}
+
+void Dimension::setTextsize( const double v )
+{
+  mTextsize_set = true;
   mTextsize = v;
 }
 
@@ -3503,14 +4436,25 @@ double Dimension::textsize() const
   return mTextsize;
 }
 
-void Dimension::setTextratio( int v )
+bool Dimension::textsizeSet() const
 {
+  return mTextsize_set;
+}
+
+void Dimension::setTextratio( const int v )
+{
+  mTextratio_set = true;
   mTextratio = v;
 }
 
 int Dimension::textratio() const
 {
   return mTextratio;
+}
+
+bool Dimension::textratioSet() const
+{
+  return mTextratio_set;
 }
 
 void Dimension::setUnit( const UnitEnum &v )
@@ -3523,14 +4467,20 @@ Dimension::UnitEnum Dimension::unit() const
   return mUnit;
 }
 
-void Dimension::setPrecision( int v )
+void Dimension::setPrecision( const int v )
 {
+  mPrecision_set = true;
   mPrecision = v;
 }
 
 int Dimension::precision() const
 {
   return mPrecision;
+}
+
+bool Dimension::precisionSet() const
+{
+  return mPrecision_set;
 }
 
 void Dimension::setVisible( const VisibleEnum &v )
@@ -3645,62 +4595,76 @@ QString Dimension::visibleEnumToString( const VisibleEnum & v )
   }
 }
 
-Dimension Dimension::parseElement( const QDomElement &element, bool *ok )
+Dimension *Dimension::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "dimension" ) {
     qCritical() << "Expected 'dimension', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Dimension();
+    return nullptr;
   }
 
-  Dimension result = Dimension();
+  Dimension* result = new Dimension();
 
-  result.setX1( element.attribute( "x1" ).toDouble() );
-  result.setY1( element.attribute( "y1" ).toDouble() );
-  result.setX2( element.attribute( "x2" ).toDouble() );
-  result.setY2( element.attribute( "y2" ).toDouble() );
-  result.setX3( element.attribute( "x3" ).toDouble() );
-  result.setY3( element.attribute( "y3" ).toDouble() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
+  if (element.hasAttribute("x1"))
+    result->setX1( element.attribute( "x1" ).toDouble() );
+  if (element.hasAttribute("y1"))
+    result->setY1( element.attribute( "y1" ).toDouble() );
+  if (element.hasAttribute("x2"))
+    result->setX2( element.attribute( "x2" ).toDouble() );
+  if (element.hasAttribute("y2"))
+    result->setY2( element.attribute( "y2" ).toDouble() );
+  if (element.hasAttribute("x3"))
+    result->setX3( element.attribute( "x3" ).toDouble() );
+  if (element.hasAttribute("y3"))
+    result->setY3( element.attribute( "y3" ).toDouble() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("dtype"))  {
     DtypeEnum dtype = dtypeEnumFromString( element.attribute( "dtype" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "dtype" ) << "\" in the \"dtype\" element";
-      return Dimension();
+      return nullptr;
     } else {
-      result.setDtype( dtype );
+      result->setDtype( dtype );
     }
   } else {
-    result.setDtype(dtypeEnumFromString("parallel"));
+    result->setDtype(Dtype_Invalid);
   }
-  result.setWidth( element.attribute( "width" ).toDouble() );
-  result.setExtwidth( element.attribute( "extwidth" ).toDouble() );
-  result.setExtlength( element.attribute( "extlength" ).toDouble() );
-  result.setExtoffset( element.attribute( "extoffset" ).toDouble() );
-  result.setTextsize( element.attribute( "textsize" ).toDouble() );
-  result.setTextratio( element.attribute( "textratio" ).toInt() );
+  if (element.hasAttribute("width"))
+    result->setWidth( element.attribute( "width" ).toDouble() );
+  if (element.hasAttribute("extwidth"))
+    result->setExtwidth( element.attribute( "extwidth" ).toDouble() );
+  if (element.hasAttribute("extlength"))
+    result->setExtlength( element.attribute( "extlength" ).toDouble() );
+  if (element.hasAttribute("extoffset"))
+    result->setExtoffset( element.attribute( "extoffset" ).toDouble() );
+  if (element.hasAttribute("textsize"))
+    result->setTextsize( element.attribute( "textsize" ).toDouble() );
+  if (element.hasAttribute("textratio"))
+    result->setTextratio( element.attribute( "textratio" ).toInt() );
   if (element.hasAttribute("unit"))  {
     UnitEnum unit = unitEnumFromString( element.attribute( "unit" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "unit" ) << "\" in the \"unit\" element";
-      return Dimension();
+      return nullptr;
     } else {
-      result.setUnit( unit );
+      result->setUnit( unit );
     }
   } else {
-    result.setUnit(unitEnumFromString("mm"));
+    result->setUnit(Unit_Invalid);
   }
-  result.setPrecision( element.attribute( "precision" ).toInt() );
+  if (element.hasAttribute("precision"))
+    result->setPrecision( element.attribute( "precision" ).toInt() );
   if (element.hasAttribute("visible"))  {
     VisibleEnum visible = visibleEnumFromString( element.attribute( "visible" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "visible" ) << "\" in the \"visible\" element";
-      return Dimension();
+      return nullptr;
     } else {
-      result.setVisible( visible );
+      result->setVisible( visible );
     }
   } else {
-    result.setVisible(visibleEnumFromString("no"));
+    result->setVisible(Visible_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -3709,12 +4673,61 @@ Dimension Dimension::parseElement( const QDomElement &element, bool *ok )
 
 void Dimension::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "dimension" );
+  xml.writeStartElement( "dimension" );
+  if (mX1_set)
+    xml.writeAttribute("x1", QString::number( mX1 ) );
+  if (mY1_set)
+    xml.writeAttribute("y1", QString::number( mY1 ) );
+  if (mX2_set)
+    xml.writeAttribute("x2", QString::number( mX2 ) );
+  if (mY2_set)
+    xml.writeAttribute("y2", QString::number( mY2 ) );
+  if (mX3_set)
+    xml.writeAttribute("x3", QString::number( mX3 ) );
+  if (mY3_set)
+    xml.writeAttribute("y3", QString::number( mY3 ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  if (mDtype != Dtype_Invalid)
+    xml.writeAttribute("dtype", dtypeEnumToString(mDtype));
+  if (mWidth_set)
+    xml.writeAttribute("width", QString::number( mWidth ) );
+  if (mExtwidth_set)
+    xml.writeAttribute("extwidth", QString::number( mExtwidth ) );
+  if (mExtlength_set)
+    xml.writeAttribute("extlength", QString::number( mExtlength ) );
+  if (mExtoffset_set)
+    xml.writeAttribute("extoffset", QString::number( mExtoffset ) );
+  if (mTextsize_set)
+    xml.writeAttribute("textsize", QString::number( mTextsize ) );
+  if (mTextratio_set)
+    xml.writeAttribute("textratio", QString::number( mTextratio ) );
+  if (mUnit != Unit_Invalid)
+    xml.writeAttribute("unit", unitEnumToString(mUnit));
+  if (mPrecision_set)
+    xml.writeAttribute("precision", QString::number( mPrecision ) );
+  if (mVisible != Visible_Invalid)
+    xml.writeAttribute("visible", visibleEnumToString(mVisible));
+  xml.writeEndElement();
 }
 
 
-void Circle::setX( double v )
+Circle::Circle()
 {
+  mX_set = false;
+  mY_set = false;
+  mRadius_set = false;
+  mWidth_set = false;
+  mLayer_set = false;
+}
+
+Circle::~Circle()
+{
+}
+
+void Circle::setX( const double v )
+{
+  mX_set = true;
   mX = v;
 }
 
@@ -3723,8 +4736,14 @@ double Circle::x() const
   return mX;
 }
 
-void Circle::setY( double v )
+bool Circle::xSet() const
 {
+  return mX_set;
+}
+
+void Circle::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -3733,8 +4752,14 @@ double Circle::y() const
   return mY;
 }
 
-void Circle::setRadius( double v )
+bool Circle::ySet() const
 {
+  return mY_set;
+}
+
+void Circle::setRadius( const double v )
+{
+  mRadius_set = true;
   mRadius = v;
 }
 
@@ -3743,8 +4768,14 @@ double Circle::radius() const
   return mRadius;
 }
 
-void Circle::setWidth( double v )
+bool Circle::radiusSet() const
 {
+  return mRadius_set;
+}
+
+void Circle::setWidth( const double v )
+{
+  mWidth_set = true;
   mWidth = v;
 }
 
@@ -3753,8 +4784,14 @@ double Circle::width() const
   return mWidth;
 }
 
-void Circle::setLayer( int v )
+bool Circle::widthSet() const
 {
+  return mWidth_set;
+}
+
+void Circle::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
@@ -3763,21 +4800,31 @@ int Circle::layer() const
   return mLayer;
 }
 
-Circle Circle::parseElement( const QDomElement &element, bool *ok )
+bool Circle::layerSet() const
+{
+  return mLayer_set;
+}
+
+Circle *Circle::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "circle" ) {
     qCritical() << "Expected 'circle', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Circle();
+    return nullptr;
   }
 
-  Circle result = Circle();
+  Circle* result = new Circle();
 
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setRadius( element.attribute( "radius" ).toDouble() );
-  result.setWidth( element.attribute( "width" ).toDouble() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("radius"))
+    result->setRadius( element.attribute( "radius" ).toDouble() );
+  if (element.hasAttribute("width"))
+    result->setWidth( element.attribute( "width" ).toDouble() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
 
   if ( ok ) *ok = true;
   return result;
@@ -3785,12 +4832,37 @@ Circle Circle::parseElement( const QDomElement &element, bool *ok )
 
 void Circle::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "circle" );
+  xml.writeStartElement( "circle" );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mRadius_set)
+    xml.writeAttribute("radius", QString::number( mRadius ) );
+  if (mWidth_set)
+    xml.writeAttribute("width", QString::number( mWidth ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  xml.writeEndElement();
 }
 
 
-void Rectangle::setX1( double v )
+Rectangle::Rectangle()
 {
+  mX1_set = false;
+  mY1_set = false;
+  mX2_set = false;
+  mY2_set = false;
+  mLayer_set = false;
+}
+
+Rectangle::~Rectangle()
+{
+}
+
+void Rectangle::setX1( const double v )
+{
+  mX1_set = true;
   mX1 = v;
 }
 
@@ -3799,8 +4871,14 @@ double Rectangle::x1() const
   return mX1;
 }
 
-void Rectangle::setY1( double v )
+bool Rectangle::x1Set() const
 {
+  return mX1_set;
+}
+
+void Rectangle::setY1( const double v )
+{
+  mY1_set = true;
   mY1 = v;
 }
 
@@ -3809,8 +4887,14 @@ double Rectangle::y1() const
   return mY1;
 }
 
-void Rectangle::setX2( double v )
+bool Rectangle::y1Set() const
 {
+  return mY1_set;
+}
+
+void Rectangle::setX2( const double v )
+{
+  mX2_set = true;
   mX2 = v;
 }
 
@@ -3819,8 +4903,14 @@ double Rectangle::x2() const
   return mX2;
 }
 
-void Rectangle::setY2( double v )
+bool Rectangle::x2Set() const
 {
+  return mX2_set;
+}
+
+void Rectangle::setY2( const double v )
+{
+  mY2_set = true;
   mY2 = v;
 }
 
@@ -3829,14 +4919,25 @@ double Rectangle::y2() const
   return mY2;
 }
 
-void Rectangle::setLayer( int v )
+bool Rectangle::y2Set() const
 {
+  return mY2_set;
+}
+
+void Rectangle::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
 int Rectangle::layer() const
 {
   return mLayer;
+}
+
+bool Rectangle::layerSet() const
+{
+  return mLayer_set;
 }
 
 void Rectangle::setRot( const QString &v )
@@ -3849,22 +4950,27 @@ QString Rectangle::rot() const
   return mRot;
 }
 
-Rectangle Rectangle::parseElement( const QDomElement &element, bool *ok )
+Rectangle *Rectangle::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "rectangle" ) {
     qCritical() << "Expected 'rectangle', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Rectangle();
+    return nullptr;
   }
 
-  Rectangle result = Rectangle();
+  Rectangle* result = new Rectangle();
 
-  result.setX1( element.attribute( "x1" ).toDouble() );
-  result.setY1( element.attribute( "y1" ).toDouble() );
-  result.setX2( element.attribute( "x2" ).toDouble() );
-  result.setY2( element.attribute( "y2" ).toDouble() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
-  result.setRot( element.attribute( "rot" ) );
+  if (element.hasAttribute("x1"))
+    result->setX1( element.attribute( "x1" ).toDouble() );
+  if (element.hasAttribute("y1"))
+    result->setY1( element.attribute( "y1" ).toDouble() );
+  if (element.hasAttribute("x2"))
+    result->setX2( element.attribute( "x2" ).toDouble() );
+  if (element.hasAttribute("y2"))
+    result->setY2( element.attribute( "y2" ).toDouble() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
+  result->setRot( element.attribute( "rot" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -3872,12 +4978,45 @@ Rectangle Rectangle::parseElement( const QDomElement &element, bool *ok )
 
 void Rectangle::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "rectangle" );
+  xml.writeStartElement( "rectangle" );
+  if (mX1_set)
+    xml.writeAttribute("x1", QString::number( mX1 ) );
+  if (mY1_set)
+    xml.writeAttribute("y1", QString::number( mY1 ) );
+  if (mX2_set)
+    xml.writeAttribute("x2", QString::number( mX2 ) );
+  if (mY2_set)
+    xml.writeAttribute("y2", QString::number( mY2 ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  xml.writeEndElement();
 }
 
 
-void Frame::setX1( double v )
+Frame::Frame()
 {
+  mX1_set = false;
+  mY1_set = false;
+  mX2_set = false;
+  mY2_set = false;
+  mColumns_set = false;
+  mRows_set = false;
+  mLayer_set = false;
+  mBorderLeft = BorderLeft_Invalid;
+  mBorderTop = BorderTop_Invalid;
+  mBorderRight = BorderRight_Invalid;
+  mBorderBottom = BorderBottom_Invalid;
+}
+
+Frame::~Frame()
+{
+}
+
+void Frame::setX1( const double v )
+{
+  mX1_set = true;
   mX1 = v;
 }
 
@@ -3886,8 +5025,14 @@ double Frame::x1() const
   return mX1;
 }
 
-void Frame::setY1( double v )
+bool Frame::x1Set() const
 {
+  return mX1_set;
+}
+
+void Frame::setY1( const double v )
+{
+  mY1_set = true;
   mY1 = v;
 }
 
@@ -3896,8 +5041,14 @@ double Frame::y1() const
   return mY1;
 }
 
-void Frame::setX2( double v )
+bool Frame::y1Set() const
 {
+  return mY1_set;
+}
+
+void Frame::setX2( const double v )
+{
+  mX2_set = true;
   mX2 = v;
 }
 
@@ -3906,8 +5057,14 @@ double Frame::x2() const
   return mX2;
 }
 
-void Frame::setY2( double v )
+bool Frame::x2Set() const
 {
+  return mX2_set;
+}
+
+void Frame::setY2( const double v )
+{
+  mY2_set = true;
   mY2 = v;
 }
 
@@ -3916,8 +5073,14 @@ double Frame::y2() const
   return mY2;
 }
 
-void Frame::setColumns( int v )
+bool Frame::y2Set() const
 {
+  return mY2_set;
+}
+
+void Frame::setColumns( const int v )
+{
+  mColumns_set = true;
   mColumns = v;
 }
 
@@ -3926,8 +5089,14 @@ int Frame::columns() const
   return mColumns;
 }
 
-void Frame::setRows( int v )
+bool Frame::columnsSet() const
 {
+  return mColumns_set;
+}
+
+void Frame::setRows( const int v )
+{
+  mRows_set = true;
   mRows = v;
 }
 
@@ -3936,14 +5105,25 @@ int Frame::rows() const
   return mRows;
 }
 
-void Frame::setLayer( int v )
+bool Frame::rowsSet() const
 {
+  return mRows_set;
+}
+
+void Frame::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
 int Frame::layer() const
 {
   return mLayer;
+}
+
+bool Frame::layerSet() const
+{
+  return mLayer_set;
 }
 
 void Frame::setBorderLeft( const BorderLeftEnum &v )
@@ -4098,66 +5278,73 @@ QString Frame::borderBottomEnumToString( const BorderBottomEnum & v )
   }
 }
 
-Frame Frame::parseElement( const QDomElement &element, bool *ok )
+Frame *Frame::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "frame" ) {
     qCritical() << "Expected 'frame', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Frame();
+    return nullptr;
   }
 
-  Frame result = Frame();
+  Frame* result = new Frame();
 
-  result.setX1( element.attribute( "x1" ).toDouble() );
-  result.setY1( element.attribute( "y1" ).toDouble() );
-  result.setX2( element.attribute( "x2" ).toDouble() );
-  result.setY2( element.attribute( "y2" ).toDouble() );
-  result.setColumns( element.attribute( "columns" ).toInt() );
-  result.setRows( element.attribute( "rows" ).toInt() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
+  if (element.hasAttribute("x1"))
+    result->setX1( element.attribute( "x1" ).toDouble() );
+  if (element.hasAttribute("y1"))
+    result->setY1( element.attribute( "y1" ).toDouble() );
+  if (element.hasAttribute("x2"))
+    result->setX2( element.attribute( "x2" ).toDouble() );
+  if (element.hasAttribute("y2"))
+    result->setY2( element.attribute( "y2" ).toDouble() );
+  if (element.hasAttribute("columns"))
+    result->setColumns( element.attribute( "columns" ).toInt() );
+  if (element.hasAttribute("rows"))
+    result->setRows( element.attribute( "rows" ).toInt() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("border-left"))  {
     BorderLeftEnum border_left = borderLeftEnumFromString( element.attribute( "border-left" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "border-left" ) << "\" in the \"border-left\" element";
-      return Frame();
+      return nullptr;
     } else {
-      result.setBorderLeft( border_left );
+      result->setBorderLeft( border_left );
     }
   } else {
-    result.setBorderLeft(borderLeftEnumFromString("yes"));
+    result->setBorderLeft(BorderLeft_Invalid);
   }
   if (element.hasAttribute("border-top"))  {
     BorderTopEnum border_top = borderTopEnumFromString( element.attribute( "border-top" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "border-top" ) << "\" in the \"border-top\" element";
-      return Frame();
+      return nullptr;
     } else {
-      result.setBorderTop( border_top );
+      result->setBorderTop( border_top );
     }
   } else {
-    result.setBorderTop(borderTopEnumFromString("yes"));
+    result->setBorderTop(BorderTop_Invalid);
   }
   if (element.hasAttribute("border-right"))  {
     BorderRightEnum border_right = borderRightEnumFromString( element.attribute( "border-right" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "border-right" ) << "\" in the \"border-right\" element";
-      return Frame();
+      return nullptr;
     } else {
-      result.setBorderRight( border_right );
+      result->setBorderRight( border_right );
     }
   } else {
-    result.setBorderRight(borderRightEnumFromString("yes"));
+    result->setBorderRight(BorderRight_Invalid);
   }
   if (element.hasAttribute("border-bottom"))  {
     BorderBottomEnum border_bottom = borderBottomEnumFromString( element.attribute( "border-bottom" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "border-bottom" ) << "\" in the \"border-bottom\" element";
-      return Frame();
+      return nullptr;
     } else {
-      result.setBorderBottom( border_bottom );
+      result->setBorderBottom( border_bottom );
     }
   } else {
-    result.setBorderBottom(borderBottomEnumFromString("yes"));
+    result->setBorderBottom(BorderBottom_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -4166,12 +5353,47 @@ Frame Frame::parseElement( const QDomElement &element, bool *ok )
 
 void Frame::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "frame" );
+  xml.writeStartElement( "frame" );
+  if (mX1_set)
+    xml.writeAttribute("x1", QString::number( mX1 ) );
+  if (mY1_set)
+    xml.writeAttribute("y1", QString::number( mY1 ) );
+  if (mX2_set)
+    xml.writeAttribute("x2", QString::number( mX2 ) );
+  if (mY2_set)
+    xml.writeAttribute("y2", QString::number( mY2 ) );
+  if (mColumns_set)
+    xml.writeAttribute("columns", QString::number( mColumns ) );
+  if (mRows_set)
+    xml.writeAttribute("rows", QString::number( mRows ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  if (mBorderLeft != BorderLeft_Invalid)
+    xml.writeAttribute("border-left", borderLeftEnumToString(mBorderLeft));
+  if (mBorderTop != BorderTop_Invalid)
+    xml.writeAttribute("border-top", borderTopEnumToString(mBorderTop));
+  if (mBorderRight != BorderRight_Invalid)
+    xml.writeAttribute("border-right", borderRightEnumToString(mBorderRight));
+  if (mBorderBottom != BorderBottom_Invalid)
+    xml.writeAttribute("border-bottom", borderBottomEnumToString(mBorderBottom));
+  xml.writeEndElement();
 }
 
 
-void Hole::setX( double v )
+Hole::Hole()
 {
+  mX_set = false;
+  mY_set = false;
+  mDrill_set = false;
+}
+
+Hole::~Hole()
+{
+}
+
+void Hole::setX( const double v )
+{
+  mX_set = true;
   mX = v;
 }
 
@@ -4180,8 +5402,14 @@ double Hole::x() const
   return mX;
 }
 
-void Hole::setY( double v )
+bool Hole::xSet() const
 {
+  return mX_set;
+}
+
+void Hole::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -4190,8 +5418,14 @@ double Hole::y() const
   return mY;
 }
 
-void Hole::setDrill( double v )
+bool Hole::ySet() const
 {
+  return mY_set;
+}
+
+void Hole::setDrill( const double v )
+{
+  mDrill_set = true;
   mDrill = v;
 }
 
@@ -4200,19 +5434,27 @@ double Hole::drill() const
   return mDrill;
 }
 
-Hole Hole::parseElement( const QDomElement &element, bool *ok )
+bool Hole::drillSet() const
+{
+  return mDrill_set;
+}
+
+Hole *Hole::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "hole" ) {
     qCritical() << "Expected 'hole', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Hole();
+    return nullptr;
   }
 
-  Hole result = Hole();
+  Hole* result = new Hole();
 
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setDrill( element.attribute( "drill" ).toDouble() );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("drill"))
+    result->setDrill( element.attribute( "drill" ).toDouble() );
 
   if ( ok ) *ok = true;
   return result;
@@ -4220,11 +5462,26 @@ Hole Hole::parseElement( const QDomElement &element, bool *ok )
 
 void Hole::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "hole" );
+  xml.writeStartElement( "hole" );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mDrill_set)
+    xml.writeAttribute("drill", QString::number( mDrill ) );
+  xml.writeEndElement();
 }
 
 
-void Plain::addPolygon( const Polygon &v )
+Plain::Plain()
+{
+}
+
+Plain::~Plain()
+{
+}
+
+void Plain::addPolygon( Polygon* v )
 {
   mPolygonList.append( v );
 }
@@ -4239,7 +5496,7 @@ Polygon::List *Plain::polygonList()
   return &mPolygonList;
 }
 
-void Plain::addWire( const Wire &v )
+void Plain::addWire( Wire* v )
 {
   mWireList.append( v );
 }
@@ -4254,7 +5511,7 @@ Wire::List *Plain::wireList()
   return &mWireList;
 }
 
-void Plain::addText( const Text &v )
+void Plain::addText( Text* v )
 {
   mTextList.append( v );
 }
@@ -4269,7 +5526,7 @@ Text::List *Plain::textList()
   return &mTextList;
 }
 
-void Plain::addDimension( const Dimension &v )
+void Plain::addDimension( Dimension* v )
 {
   mDimensionList.append( v );
 }
@@ -4284,7 +5541,7 @@ Dimension::List *Plain::dimensionList()
   return &mDimensionList;
 }
 
-void Plain::addCircle( const Circle &v )
+void Plain::addCircle( Circle* v )
 {
   mCircleList.append( v );
 }
@@ -4299,7 +5556,7 @@ Circle::List *Plain::circleList()
   return &mCircleList;
 }
 
-void Plain::addRectangle( const Rectangle &v )
+void Plain::addRectangle( Rectangle* v )
 {
   mRectangleList.append( v );
 }
@@ -4314,7 +5571,7 @@ Rectangle::List *Plain::rectangleList()
   return &mRectangleList;
 }
 
-void Plain::addFrame( const Frame &v )
+void Plain::addFrame( Frame* v )
 {
   mFrameList.append( v );
 }
@@ -4329,7 +5586,7 @@ Frame::List *Plain::frameList()
   return &mFrameList;
 }
 
-void Plain::addHole( const Hole &v )
+void Plain::addHole( Hole* v )
 {
   mHoleList.append( v );
 }
@@ -4344,58 +5601,58 @@ Hole::List *Plain::holeList()
   return &mHoleList;
 }
 
-Plain Plain::parseElement( const QDomElement &element, bool *ok )
+Plain *Plain::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "plain" ) {
     qCritical() << "Expected 'plain', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Plain();
+    return nullptr;
   }
 
-  Plain result = Plain();
+  Plain* result = new Plain();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "polygon" ) {
       bool ok;
-      Polygon o = Polygon::parseElement( e, &ok );
-      if ( ok ) result.addPolygon( o );
+      Polygon *o = Polygon::parseElement( e, &ok );
+      if ( ok ) result->addPolygon( o );
     }
     else if ( e.tagName() == "wire" ) {
       bool ok;
-      Wire o = Wire::parseElement( e, &ok );
-      if ( ok ) result.addWire( o );
+      Wire *o = Wire::parseElement( e, &ok );
+      if ( ok ) result->addWire( o );
     }
     else if ( e.tagName() == "text" ) {
       bool ok;
-      Text o = Text::parseElement( e, &ok );
-      if ( ok ) result.addText( o );
+      Text *o = Text::parseElement( e, &ok );
+      if ( ok ) result->addText( o );
     }
     else if ( e.tagName() == "dimension" ) {
       bool ok;
-      Dimension o = Dimension::parseElement( e, &ok );
-      if ( ok ) result.addDimension( o );
+      Dimension *o = Dimension::parseElement( e, &ok );
+      if ( ok ) result->addDimension( o );
     }
     else if ( e.tagName() == "circle" ) {
       bool ok;
-      Circle o = Circle::parseElement( e, &ok );
-      if ( ok ) result.addCircle( o );
+      Circle *o = Circle::parseElement( e, &ok );
+      if ( ok ) result->addCircle( o );
     }
     else if ( e.tagName() == "rectangle" ) {
       bool ok;
-      Rectangle o = Rectangle::parseElement( e, &ok );
-      if ( ok ) result.addRectangle( o );
+      Rectangle *o = Rectangle::parseElement( e, &ok );
+      if ( ok ) result->addRectangle( o );
     }
     else if ( e.tagName() == "frame" ) {
       bool ok;
-      Frame o = Frame::parseElement( e, &ok );
-      if ( ok ) result.addFrame( o );
+      Frame *o = Frame::parseElement( e, &ok );
+      if ( ok ) result->addFrame( o );
     }
     else if ( e.tagName() == "hole" ) {
       bool ok;
-      Hole o = Hole::parseElement( e, &ok );
-      if ( ok ) result.addHole( o );
+      Hole *o = Hole::parseElement( e, &ok );
+      if ( ok ) result->addHole( o );
     }
   }
 
@@ -4408,34 +5665,58 @@ void Plain::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mPolygonList.isEmpty() || !mWireList.isEmpty() || !mTextList.isEmpty() || !mDimensionList.isEmpty() || !mCircleList.isEmpty() || !mRectangleList.isEmpty() || !mFrameList.isEmpty() || !mHoleList.isEmpty() ) {
     xml.writeStartElement( "plain" );
-    foreach( Polygon e, mPolygonList ) {
-      e.writeElement( xml );
+    foreach( Polygon* e, mPolygonList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Wire e, mWireList ) {
-      e.writeElement( xml );
+    foreach( Wire* e, mWireList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Text e, mTextList ) {
-      e.writeElement( xml );
+    foreach( Text* e, mTextList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Dimension e, mDimensionList ) {
-      e.writeElement( xml );
+    foreach( Dimension* e, mDimensionList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Circle e, mCircleList ) {
-      e.writeElement( xml );
+    foreach( Circle* e, mCircleList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Rectangle e, mRectangleList ) {
-      e.writeElement( xml );
+    foreach( Rectangle* e, mRectangleList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Frame e, mFrameList ) {
-      e.writeElement( xml );
+    foreach( Frame* e, mFrameList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Hole e, mHoleList ) {
-      e.writeElement( xml );
+    foreach( Hole* e, mHoleList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Pad::Pad()
+{
+  mX_set = false;
+  mY_set = false;
+  mDrill_set = false;
+  mDiameter_set = false;
+  mShape = Shape_Invalid;
+  mStop = Stop_Invalid;
+  mThermals = Thermals_Invalid;
+  mFirst = First_Invalid;
+}
+
+Pad::~Pad()
+{
+}
 
 void Pad::setName( const QString &v )
 {
@@ -4447,8 +5728,9 @@ QString Pad::name() const
   return mName;
 }
 
-void Pad::setX( double v )
+void Pad::setX( const double v )
 {
+  mX_set = true;
   mX = v;
 }
 
@@ -4457,8 +5739,14 @@ double Pad::x() const
   return mX;
 }
 
-void Pad::setY( double v )
+bool Pad::xSet() const
 {
+  return mX_set;
+}
+
+void Pad::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -4467,8 +5755,14 @@ double Pad::y() const
   return mY;
 }
 
-void Pad::setDrill( double v )
+bool Pad::ySet() const
 {
+  return mY_set;
+}
+
+void Pad::setDrill( const double v )
+{
+  mDrill_set = true;
   mDrill = v;
 }
 
@@ -4477,14 +5771,25 @@ double Pad::drill() const
   return mDrill;
 }
 
-void Pad::setDiameter( double v )
+bool Pad::drillSet() const
 {
+  return mDrill_set;
+}
+
+void Pad::setDiameter( const double v )
+{
+  mDiameter_set = true;
   mDiameter = v;
 }
 
 double Pad::diameter() const
 {
   return mDiameter;
+}
+
+bool Pad::diameterSet() const
+{
+  return mDiameter_set;
 }
 
 void Pad::setShape( const ShapeEnum &v )
@@ -4658,65 +5963,69 @@ QString Pad::firstEnumToString( const FirstEnum & v )
   }
 }
 
-Pad Pad::parseElement( const QDomElement &element, bool *ok )
+Pad *Pad::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "pad" ) {
     qCritical() << "Expected 'pad', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Pad();
+    return nullptr;
   }
 
-  Pad result = Pad();
+  Pad* result = new Pad();
 
-  result.setName( element.attribute( "name" ) );
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setDrill( element.attribute( "drill" ).toDouble() );
-  result.setDiameter( element.attribute( "diameter" ).toDouble() );
+  result->setName( element.attribute( "name" ) );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("drill"))
+    result->setDrill( element.attribute( "drill" ).toDouble() );
+  if (element.hasAttribute("diameter"))
+    result->setDiameter( element.attribute( "diameter" ).toDouble() );
   if (element.hasAttribute("shape"))  {
     ShapeEnum shape = shapeEnumFromString( element.attribute( "shape" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "shape" ) << "\" in the \"shape\" element";
-      return Pad();
+      return nullptr;
     } else {
-      result.setShape( shape );
+      result->setShape( shape );
     }
   } else {
-    result.setShape(shapeEnumFromString("round"));
+    result->setShape(Shape_Invalid);
   }
-  result.setRot( element.attribute( "rot" ) );
+  result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("stop"))  {
     StopEnum stop = stopEnumFromString( element.attribute( "stop" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "stop" ) << "\" in the \"stop\" element";
-      return Pad();
+      return nullptr;
     } else {
-      result.setStop( stop );
+      result->setStop( stop );
     }
   } else {
-    result.setStop(stopEnumFromString("yes"));
+    result->setStop(Stop_Invalid);
   }
   if (element.hasAttribute("thermals"))  {
     ThermalsEnum thermals = thermalsEnumFromString( element.attribute( "thermals" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "thermals" ) << "\" in the \"thermals\" element";
-      return Pad();
+      return nullptr;
     } else {
-      result.setThermals( thermals );
+      result->setThermals( thermals );
     }
   } else {
-    result.setThermals(thermalsEnumFromString("yes"));
+    result->setThermals(Thermals_Invalid);
   }
   if (element.hasAttribute("first"))  {
     FirstEnum first = firstEnumFromString( element.attribute( "first" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "first" ) << "\" in the \"first\" element";
-      return Pad();
+      return nullptr;
     } else {
-      result.setFirst( first );
+      result->setFirst( first );
     }
   } else {
-    result.setFirst(firstEnumFromString("no"));
+    result->setFirst(First_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -4725,9 +6034,47 @@ Pad Pad::parseElement( const QDomElement &element, bool *ok )
 
 void Pad::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "pad" );
+  xml.writeStartElement( "pad" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mDrill_set)
+    xml.writeAttribute("drill", QString::number( mDrill ) );
+  if (mDiameter_set)
+    xml.writeAttribute("diameter", QString::number( mDiameter ) );
+  if (mShape != Shape_Invalid)
+    xml.writeAttribute("shape", shapeEnumToString(mShape));
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  if (mStop != Stop_Invalid)
+    xml.writeAttribute("stop", stopEnumToString(mStop));
+  if (mThermals != Thermals_Invalid)
+    xml.writeAttribute("thermals", thermalsEnumToString(mThermals));
+  if (mFirst != First_Invalid)
+    xml.writeAttribute("first", firstEnumToString(mFirst));
+  xml.writeEndElement();
 }
 
+
+Smd::Smd()
+{
+  mX_set = false;
+  mY_set = false;
+  mDx_set = false;
+  mDy_set = false;
+  mLayer_set = false;
+  mRoundness_set = false;
+  mStop = Stop_Invalid;
+  mThermals = Thermals_Invalid;
+  mCream = Cream_Invalid;
+}
+
+Smd::~Smd()
+{
+}
 
 void Smd::setName( const QString &v )
 {
@@ -4739,8 +6086,9 @@ QString Smd::name() const
   return mName;
 }
 
-void Smd::setX( double v )
+void Smd::setX( const double v )
 {
+  mX_set = true;
   mX = v;
 }
 
@@ -4749,8 +6097,14 @@ double Smd::x() const
   return mX;
 }
 
-void Smd::setY( double v )
+bool Smd::xSet() const
 {
+  return mX_set;
+}
+
+void Smd::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -4759,8 +6113,14 @@ double Smd::y() const
   return mY;
 }
 
-void Smd::setDx( double v )
+bool Smd::ySet() const
 {
+  return mY_set;
+}
+
+void Smd::setDx( const double v )
+{
+  mDx_set = true;
   mDx = v;
 }
 
@@ -4769,8 +6129,14 @@ double Smd::dx() const
   return mDx;
 }
 
-void Smd::setDy( double v )
+bool Smd::dxSet() const
 {
+  return mDx_set;
+}
+
+void Smd::setDy( const double v )
+{
+  mDy_set = true;
   mDy = v;
 }
 
@@ -4779,8 +6145,14 @@ double Smd::dy() const
   return mDy;
 }
 
-void Smd::setLayer( int v )
+bool Smd::dySet() const
 {
+  return mDy_set;
+}
+
+void Smd::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
@@ -4789,14 +6161,25 @@ int Smd::layer() const
   return mLayer;
 }
 
-void Smd::setRoundness( int v )
+bool Smd::layerSet() const
 {
+  return mLayer_set;
+}
+
+void Smd::setRoundness( const int v )
+{
+  mRoundness_set = true;
   mRoundness = v;
 }
 
 int Smd::roundness() const
 {
   return mRoundness;
+}
+
+bool Smd::roundnessSet() const
+{
+  return mRoundness_set;
 }
 
 void Smd::setRot( const QString &v )
@@ -4923,56 +6306,62 @@ QString Smd::creamEnumToString( const CreamEnum & v )
   }
 }
 
-Smd Smd::parseElement( const QDomElement &element, bool *ok )
+Smd *Smd::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "smd" ) {
     qCritical() << "Expected 'smd', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Smd();
+    return nullptr;
   }
 
-  Smd result = Smd();
+  Smd* result = new Smd();
 
-  result.setName( element.attribute( "name" ) );
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setDx( element.attribute( "dx" ).toDouble() );
-  result.setDy( element.attribute( "dy" ).toDouble() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
-  result.setRoundness( element.attribute( "roundness" ).toInt() );
-  result.setRot( element.attribute( "rot" ) );
+  result->setName( element.attribute( "name" ) );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("dx"))
+    result->setDx( element.attribute( "dx" ).toDouble() );
+  if (element.hasAttribute("dy"))
+    result->setDy( element.attribute( "dy" ).toDouble() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
+  if (element.hasAttribute("roundness"))
+    result->setRoundness( element.attribute( "roundness" ).toInt() );
+  result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("stop"))  {
     StopEnum stop = stopEnumFromString( element.attribute( "stop" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "stop" ) << "\" in the \"stop\" element";
-      return Smd();
+      return nullptr;
     } else {
-      result.setStop( stop );
+      result->setStop( stop );
     }
   } else {
-    result.setStop(stopEnumFromString("yes"));
+    result->setStop(Stop_Invalid);
   }
   if (element.hasAttribute("thermals"))  {
     ThermalsEnum thermals = thermalsEnumFromString( element.attribute( "thermals" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "thermals" ) << "\" in the \"thermals\" element";
-      return Smd();
+      return nullptr;
     } else {
-      result.setThermals( thermals );
+      result->setThermals( thermals );
     }
   } else {
-    result.setThermals(thermalsEnumFromString("yes"));
+    result->setThermals(Thermals_Invalid);
   }
   if (element.hasAttribute("cream"))  {
     CreamEnum cream = creamEnumFromString( element.attribute( "cream" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "cream" ) << "\" in the \"cream\" element";
-      return Smd();
+      return nullptr;
     } else {
-      result.setCream( cream );
+      result->setCream( cream );
     }
   } else {
-    result.setCream(creamEnumFromString("yes"));
+    result->setCream(Cream_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -4981,9 +6370,44 @@ Smd Smd::parseElement( const QDomElement &element, bool *ok )
 
 void Smd::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "smd" );
+  xml.writeStartElement( "smd" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mDx_set)
+    xml.writeAttribute("dx", QString::number( mDx ) );
+  if (mDy_set)
+    xml.writeAttribute("dy", QString::number( mDy ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  if (mRoundness_set)
+    xml.writeAttribute("roundness", QString::number( mRoundness ) );
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  if (mStop != Stop_Invalid)
+    xml.writeAttribute("stop", stopEnumToString(mStop));
+  if (mThermals != Thermals_Invalid)
+    xml.writeAttribute("thermals", thermalsEnumToString(mThermals));
+  if (mCream != Cream_Invalid)
+    xml.writeAttribute("cream", creamEnumToString(mCream));
+  xml.writeEndElement();
 }
 
+
+Package::Package()
+{
+  mLocallyModified = LocallyModified_Invalid;
+  mLibraryVersion_set = false;
+  mLibraryLocallyModified = LibraryLocallyModified_Invalid;
+  mDescription = nullptr;
+}
+
+Package::~Package()
+{
+}
 
 void Package::setName( const QString &v )
 {
@@ -5015,14 +6439,20 @@ Package::LocallyModifiedEnum Package::locallyModified() const
   return mLocallyModified;
 }
 
-void Package::setLibraryVersion( int v )
+void Package::setLibraryVersion( const int v )
 {
+  mLibraryVersion_set = true;
   mLibraryVersion = v;
 }
 
 int Package::libraryVersion() const
 {
   return mLibraryVersion;
+}
+
+bool Package::libraryVersionSet() const
+{
+  return mLibraryVersion_set;
 }
 
 void Package::setLibraryLocallyModified( const LibraryLocallyModifiedEnum &v )
@@ -5035,7 +6465,7 @@ Package::LibraryLocallyModifiedEnum Package::libraryLocallyModified() const
   return mLibraryLocallyModified;
 }
 
-void Package::addPolygon( const Polygon &v )
+void Package::addPolygon( Polygon* v )
 {
   mPolygonList.append( v );
 }
@@ -5050,7 +6480,7 @@ Polygon::List *Package::polygonList()
   return &mPolygonList;
 }
 
-void Package::addWire( const Wire &v )
+void Package::addWire( Wire* v )
 {
   mWireList.append( v );
 }
@@ -5065,7 +6495,7 @@ Wire::List *Package::wireList()
   return &mWireList;
 }
 
-void Package::addText( const Text &v )
+void Package::addText( Text* v )
 {
   mTextList.append( v );
 }
@@ -5080,7 +6510,7 @@ Text::List *Package::textList()
   return &mTextList;
 }
 
-void Package::addDimension( const Dimension &v )
+void Package::addDimension( Dimension* v )
 {
   mDimensionList.append( v );
 }
@@ -5095,7 +6525,7 @@ Dimension::List *Package::dimensionList()
   return &mDimensionList;
 }
 
-void Package::addCircle( const Circle &v )
+void Package::addCircle( Circle* v )
 {
   mCircleList.append( v );
 }
@@ -5110,7 +6540,7 @@ Circle::List *Package::circleList()
   return &mCircleList;
 }
 
-void Package::addRectangle( const Rectangle &v )
+void Package::addRectangle( Rectangle* v )
 {
   mRectangleList.append( v );
 }
@@ -5125,7 +6555,7 @@ Rectangle::List *Package::rectangleList()
   return &mRectangleList;
 }
 
-void Package::addFrame( const Frame &v )
+void Package::addFrame( Frame* v )
 {
   mFrameList.append( v );
 }
@@ -5140,7 +6570,7 @@ Frame::List *Package::frameList()
   return &mFrameList;
 }
 
-void Package::addHole( const Hole &v )
+void Package::addHole( Hole* v )
 {
   mHoleList.append( v );
 }
@@ -5155,7 +6585,7 @@ Hole::List *Package::holeList()
   return &mHoleList;
 }
 
-void Package::addPad( const Pad &v )
+void Package::addPad( Pad* v )
 {
   mPadList.append( v );
 }
@@ -5170,7 +6600,7 @@ Pad::List *Package::padList()
   return &mPadList;
 }
 
-void Package::addSmd( const Smd &v )
+void Package::addSmd( Smd* v )
 {
   mSmdList.append( v );
 }
@@ -5185,14 +6615,14 @@ Smd::List *Package::smdList()
   return &mSmdList;
 }
 
-void Package::setDescription( const Description &v )
+void Package::setDescription( Description *v )
 {
   mDescription = v;
 }
 
 Description *Package::description()
 {
-  return &mDescription;
+  return mDescription;
 }
 
 Package::LocallyModifiedEnum Package::locallyModifiedEnumFromString( const QString & v, bool *ok )
@@ -5251,100 +6681,101 @@ QString Package::libraryLocallyModifiedEnumToString( const LibraryLocallyModifie
   }
 }
 
-Package Package::parseElement( const QDomElement &element, bool *ok )
+Package *Package::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "package" ) {
     qCritical() << "Expected 'package', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Package();
+    return nullptr;
   }
 
-  Package result = Package();
+  Package* result = new Package();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "polygon" ) {
       bool ok;
-      Polygon o = Polygon::parseElement( e, &ok );
-      if ( ok ) result.addPolygon( o );
+      Polygon *o = Polygon::parseElement( e, &ok );
+      if ( ok ) result->addPolygon( o );
     }
     else if ( e.tagName() == "wire" ) {
       bool ok;
-      Wire o = Wire::parseElement( e, &ok );
-      if ( ok ) result.addWire( o );
+      Wire *o = Wire::parseElement( e, &ok );
+      if ( ok ) result->addWire( o );
     }
     else if ( e.tagName() == "text" ) {
       bool ok;
-      Text o = Text::parseElement( e, &ok );
-      if ( ok ) result.addText( o );
+      Text *o = Text::parseElement( e, &ok );
+      if ( ok ) result->addText( o );
     }
     else if ( e.tagName() == "dimension" ) {
       bool ok;
-      Dimension o = Dimension::parseElement( e, &ok );
-      if ( ok ) result.addDimension( o );
+      Dimension *o = Dimension::parseElement( e, &ok );
+      if ( ok ) result->addDimension( o );
     }
     else if ( e.tagName() == "circle" ) {
       bool ok;
-      Circle o = Circle::parseElement( e, &ok );
-      if ( ok ) result.addCircle( o );
+      Circle *o = Circle::parseElement( e, &ok );
+      if ( ok ) result->addCircle( o );
     }
     else if ( e.tagName() == "rectangle" ) {
       bool ok;
-      Rectangle o = Rectangle::parseElement( e, &ok );
-      if ( ok ) result.addRectangle( o );
+      Rectangle *o = Rectangle::parseElement( e, &ok );
+      if ( ok ) result->addRectangle( o );
     }
     else if ( e.tagName() == "frame" ) {
       bool ok;
-      Frame o = Frame::parseElement( e, &ok );
-      if ( ok ) result.addFrame( o );
+      Frame *o = Frame::parseElement( e, &ok );
+      if ( ok ) result->addFrame( o );
     }
     else if ( e.tagName() == "hole" ) {
       bool ok;
-      Hole o = Hole::parseElement( e, &ok );
-      if ( ok ) result.addHole( o );
+      Hole *o = Hole::parseElement( e, &ok );
+      if ( ok ) result->addHole( o );
     }
     else if ( e.tagName() == "pad" ) {
       bool ok;
-      Pad o = Pad::parseElement( e, &ok );
-      if ( ok ) result.addPad( o );
+      Pad *o = Pad::parseElement( e, &ok );
+      if ( ok ) result->addPad( o );
     }
     else if ( e.tagName() == "smd" ) {
       bool ok;
-      Smd o = Smd::parseElement( e, &ok );
-      if ( ok ) result.addSmd( o );
+      Smd *o = Smd::parseElement( e, &ok );
+      if ( ok ) result->addSmd( o );
     }
     else if ( e.tagName() == "description" ) {
       bool ok;
-      Description o = Description::parseElement( e, &ok );
-      if ( ok ) result.setDescription( o );
+      Description *o = Description::parseElement( e, &ok );
+      if ( ok ) result->setDescription( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setUrn( element.attribute( "urn" ) );
+  result->setName( element.attribute( "name" ) );
+  result->setUrn( element.attribute( "urn" ) );
   if (element.hasAttribute("locally_modified"))  {
     LocallyModifiedEnum locally_modified = locallyModifiedEnumFromString( element.attribute( "locally_modified" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "locally_modified" ) << "\" in the \"locally_modified\" element";
-      return Package();
+      return nullptr;
     } else {
-      result.setLocallyModified( locally_modified );
+      result->setLocallyModified( locally_modified );
     }
   } else {
-    result.setLocallyModified(locallyModifiedEnumFromString("no"));
+    result->setLocallyModified(LocallyModified_Invalid);
   }
-  result.setLibraryVersion( element.attribute( "library_version" ).toInt() );
+  if (element.hasAttribute("library_version"))
+    result->setLibraryVersion( element.attribute( "library_version" ).toInt() );
   if (element.hasAttribute("library_locally_modified"))  {
     LibraryLocallyModifiedEnum library_locally_modified = libraryLocallyModifiedEnumFromString( element.attribute( "library_locally_modified" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "library_locally_modified" ) << "\" in the \"library_locally_modified\" element";
-      return Package();
+      return nullptr;
     } else {
-      result.setLibraryLocallyModified( library_locally_modified );
+      result->setLibraryLocallyModified( library_locally_modified );
     }
   } else {
-    result.setLibraryLocallyModified(libraryLocallyModifiedEnumFromString("no"));
+    result->setLibraryLocallyModified(LibraryLocallyModified_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -5354,47 +6785,71 @@ Package Package::parseElement( const QDomElement &element, bool *ok )
 void Package::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "package" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("urn", urn() );
-  xml.writeAttribute("locally_modified", locallyModifiedEnumToString( locallyModified() ));
-  xml.writeAttribute("library_version", QString::number( libraryVersion() ) );
-  xml.writeAttribute("library_locally_modified", libraryLocallyModifiedEnumToString( libraryLocallyModified() ));
-  foreach( Polygon e, mPolygonList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mUrn.isEmpty())
+    xml.writeAttribute("urn", mUrn );
+  if (mLocallyModified != LocallyModified_Invalid)
+    xml.writeAttribute("locally_modified", locallyModifiedEnumToString(mLocallyModified));
+  if (mLibraryVersion_set)
+    xml.writeAttribute("library_version", QString::number( mLibraryVersion ) );
+  if (mLibraryLocallyModified != LibraryLocallyModified_Invalid)
+    xml.writeAttribute("library_locally_modified", libraryLocallyModifiedEnumToString(mLibraryLocallyModified));
+  foreach( Polygon* e, mPolygonList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Wire e, mWireList ) {
-    e.writeElement( xml );
+  foreach( Wire* e, mWireList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Text e, mTextList ) {
-    e.writeElement( xml );
+  foreach( Text* e, mTextList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Dimension e, mDimensionList ) {
-    e.writeElement( xml );
+  foreach( Dimension* e, mDimensionList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Circle e, mCircleList ) {
-    e.writeElement( xml );
+  foreach( Circle* e, mCircleList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Rectangle e, mRectangleList ) {
-    e.writeElement( xml );
+  foreach( Rectangle* e, mRectangleList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Frame e, mFrameList ) {
-    e.writeElement( xml );
+  foreach( Frame* e, mFrameList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Hole e, mHoleList ) {
-    e.writeElement( xml );
+  foreach( Hole* e, mHoleList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Pad e, mPadList ) {
-    e.writeElement( xml );
+  foreach( Pad* e, mPadList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Smd e, mSmdList ) {
-    e.writeElement( xml );
+  foreach( Smd* e, mSmdList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  mDescription.writeElement( xml );
+  if (mDescription)
+    mDescription->writeElement( xml );
   xml.writeEndElement();
 }
 
 
-void Packages::addPackage( const Package &v )
+Packages::Packages()
+{
+}
+
+Packages::~Packages()
+{
+}
+
+void Packages::addPackage( Package* v )
 {
   mPackageList.append( v );
 }
@@ -5409,23 +6864,23 @@ Package::List *Packages::packageList()
   return &mPackageList;
 }
 
-Packages Packages::parseElement( const QDomElement &element, bool *ok )
+Packages *Packages::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "packages" ) {
     qCritical() << "Expected 'packages', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Packages();
+    return nullptr;
   }
 
-  Packages result = Packages();
+  Packages* result = new Packages();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "package" ) {
       bool ok;
-      Package o = Package::parseElement( e, &ok );
-      if ( ok ) result.addPackage( o );
+      Package *o = Package::parseElement( e, &ok );
+      if ( ok ) result->addPackage( o );
     }
   }
 
@@ -5438,13 +6893,412 @@ void Packages::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mPackageList.isEmpty() ) {
     xml.writeStartElement( "packages" );
-    foreach( Package e, mPackageList ) {
-      e.writeElement( xml );
+    foreach( Package* e, mPackageList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Packageinstance::Packageinstance()
+{
+}
+
+Packageinstance::~Packageinstance()
+{
+}
+
+void Packageinstance::setName( const QString &v )
+{
+  mName = v;
+}
+
+QString Packageinstance::name() const
+{
+  return mName;
+}
+
+Packageinstance *Packageinstance::parseElement( const QDomElement &element, bool *ok )
+{
+  if ( element.tagName() != "packageinstance" ) {
+    qCritical() << "Expected 'packageinstance', got '" << element.tagName() << "'.";
+    if ( ok ) *ok = false;
+    return nullptr;
+  }
+
+  Packageinstance* result = new Packageinstance();
+
+  result->setName( element.attribute( "name" ) );
+
+  if ( ok ) *ok = true;
+  return result;
+}
+
+void Packageinstance::writeElement( QXmlStreamWriter &xml ) const
+{
+  xml.writeStartElement( "packageinstance" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  xml.writeEndElement();
+}
+
+
+Packageinstances::Packageinstances()
+{
+}
+
+Packageinstances::~Packageinstances()
+{
+}
+
+void Packageinstances::addPackageinstance( Packageinstance* v )
+{
+  mPackageinstanceList.append( v );
+}
+
+void Packageinstances::setPackageinstanceList( const Packageinstance::List &v )
+{
+  mPackageinstanceList = v;
+}
+
+Packageinstance::List *Packageinstances::packageinstanceList()
+{
+  return &mPackageinstanceList;
+}
+
+Packageinstances *Packageinstances::parseElement( const QDomElement &element, bool *ok )
+{
+  if ( element.tagName() != "packageinstances" ) {
+    qCritical() << "Expected 'packageinstances', got '" << element.tagName() << "'.";
+    if ( ok ) *ok = false;
+    return nullptr;
+  }
+
+  Packageinstances* result = new Packageinstances();
+
+  QDomNode n;
+  for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
+    QDomElement e = n.toElement();
+    if ( e.tagName() == "packageinstance" ) {
+      bool ok;
+      Packageinstance *o = Packageinstance::parseElement( e, &ok );
+      if ( ok ) result->addPackageinstance( o );
+    }
+  }
+
+
+  if ( ok ) *ok = true;
+  return result;
+}
+
+void Packageinstances::writeElement( QXmlStreamWriter &xml ) const
+{
+  if ( !mPackageinstanceList.isEmpty() ) {
+    xml.writeStartElement( "packageinstances" );
+    foreach( Packageinstance* e, mPackageinstanceList ) {
+      if (e)
+        e->writeElement( xml );
+    }
+    xml.writeEndElement();
+  }
+}
+
+
+Package3d::Package3d()
+{
+  mType = Type_Invalid;
+  mLibraryVersion_set = false;
+  mLibraryLocallyModified = LibraryLocallyModified_Invalid;
+  mDescription = nullptr;
+  mPackageinstances = nullptr;
+}
+
+Package3d::~Package3d()
+{
+}
+
+void Package3d::setName( const QString &v )
+{
+  mName = v;
+}
+
+QString Package3d::name() const
+{
+  return mName;
+}
+
+void Package3d::setUrn( const QString &v )
+{
+  mUrn = v;
+}
+
+QString Package3d::urn() const
+{
+  return mUrn;
+}
+
+void Package3d::setType( const TypeEnum &v )
+{
+  mType = v;
+}
+
+Package3d::TypeEnum Package3d::type() const
+{
+  return mType;
+}
+
+void Package3d::setLibraryVersion( const int v )
+{
+  mLibraryVersion_set = true;
+  mLibraryVersion = v;
+}
+
+int Package3d::libraryVersion() const
+{
+  return mLibraryVersion;
+}
+
+bool Package3d::libraryVersionSet() const
+{
+  return mLibraryVersion_set;
+}
+
+void Package3d::setLibraryLocallyModified( const LibraryLocallyModifiedEnum &v )
+{
+  mLibraryLocallyModified = v;
+}
+
+Package3d::LibraryLocallyModifiedEnum Package3d::libraryLocallyModified() const
+{
+  return mLibraryLocallyModified;
+}
+
+void Package3d::setDescription( Description *v )
+{
+  mDescription = v;
+}
+
+Description *Package3d::description()
+{
+  return mDescription;
+}
+
+void Package3d::setPackageinstances( Packageinstances *v )
+{
+  mPackageinstances = v;
+}
+
+Packageinstances *Package3d::packageinstances()
+{
+  return mPackageinstances;
+}
+
+Package3d::TypeEnum Package3d::typeEnumFromString( const QString & v, bool *ok )
+{
+  if (ok) *ok = true;
+
+  if ( v == "model" ) {
+    return Type_model;
+  } else if ( v == "box" ) {
+    return Type_box;
+  } else {
+    if (ok) *ok = false;
+    return Type_Invalid;
+  }
+
+  return Type_Invalid;
+}
+
+QString Package3d::typeEnumToString( const TypeEnum & v )
+{
+  switch( v ) {
+  case Type_model: return "model";
+  case Type_box: return "box";
+  case Type_Invalid:
+  default:
+    qCritical() << "Unable to serialize a(n) TypeEnum enum because it has invalid value:" << v;
+    return QString();
+  }
+}
+
+Package3d::LibraryLocallyModifiedEnum Package3d::libraryLocallyModifiedEnumFromString( const QString & v, bool *ok )
+{
+  if (ok) *ok = true;
+
+  if ( v == "no" ) {
+    return LibraryLocallyModified_no;
+  } else if ( v == "yes" ) {
+    return LibraryLocallyModified_yes;
+  } else {
+    if (ok) *ok = false;
+    return LibraryLocallyModified_Invalid;
+  }
+
+  return LibraryLocallyModified_Invalid;
+}
+
+QString Package3d::libraryLocallyModifiedEnumToString( const LibraryLocallyModifiedEnum & v )
+{
+  switch( v ) {
+  case LibraryLocallyModified_no: return "no";
+  case LibraryLocallyModified_yes: return "yes";
+  case LibraryLocallyModified_Invalid:
+  default:
+    qCritical() << "Unable to serialize a(n) LibraryLocallyModifiedEnum enum because it has invalid value:" << v;
+    return QString();
+  }
+}
+
+Package3d *Package3d::parseElement( const QDomElement &element, bool *ok )
+{
+  if ( element.tagName() != "package3d" ) {
+    qCritical() << "Expected 'package3d', got '" << element.tagName() << "'.";
+    if ( ok ) *ok = false;
+    return nullptr;
+  }
+
+  Package3d* result = new Package3d();
+
+  QDomNode n;
+  for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
+    QDomElement e = n.toElement();
+    if ( e.tagName() == "description" ) {
+      bool ok;
+      Description *o = Description::parseElement( e, &ok );
+      if ( ok ) result->setDescription( o );
+    }
+    else if ( e.tagName() == "packageinstances" ) {
+      bool ok;
+      Packageinstances *o = Packageinstances::parseElement( e, &ok );
+      if ( ok ) result->setPackageinstances( o );
+    }
+  }
+
+  result->setName( element.attribute( "name" ) );
+  result->setUrn( element.attribute( "urn" ) );
+  TypeEnum type = typeEnumFromString( element.attribute( "type" ), ok  );
+  if (ok && *ok == false) {
+    qCritical() << "Invalid string: \"" << element.attribute( "type" ) << "\" in the \"type\" element";
+    return nullptr;
+  } else {
+    result->setType( type );
+  }
+  if (element.hasAttribute("library_version"))
+    result->setLibraryVersion( element.attribute( "library_version" ).toInt() );
+  if (element.hasAttribute("library_locally_modified"))  {
+    LibraryLocallyModifiedEnum library_locally_modified = libraryLocallyModifiedEnumFromString( element.attribute( "library_locally_modified" ), ok  );
+    if (ok && *ok == false) {
+      qCritical() << "Invalid string: \"" << element.attribute( "library_locally_modified" ) << "\" in the \"library_locally_modified\" element";
+      return nullptr;
+    } else {
+      result->setLibraryLocallyModified( library_locally_modified );
+    }
+  } else {
+    result->setLibraryLocallyModified(LibraryLocallyModified_Invalid);
+  }
+
+  if ( ok ) *ok = true;
+  return result;
+}
+
+void Package3d::writeElement( QXmlStreamWriter &xml ) const
+{
+  xml.writeStartElement( "package3d" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mUrn.isEmpty())
+    xml.writeAttribute("urn", mUrn );
+  if (mType != Type_Invalid)
+    xml.writeAttribute("type", typeEnumToString(mType));
+  if (mLibraryVersion_set)
+    xml.writeAttribute("library_version", QString::number( mLibraryVersion ) );
+  if (mLibraryLocallyModified != LibraryLocallyModified_Invalid)
+    xml.writeAttribute("library_locally_modified", libraryLocallyModifiedEnumToString(mLibraryLocallyModified));
+  if (mDescription)
+    mDescription->writeElement( xml );
+  if (mPackageinstances)
+    mPackageinstances->writeElement( xml );
+  xml.writeEndElement();
+}
+
+
+Packages3d::Packages3d()
+{
+}
+
+Packages3d::~Packages3d()
+{
+}
+
+void Packages3d::addPackage3d( Package3d* v )
+{
+  mPackage3dList.append( v );
+}
+
+void Packages3d::setPackage3dList( const Package3d::List &v )
+{
+  mPackage3dList = v;
+}
+
+Package3d::List *Packages3d::package3dList()
+{
+  return &mPackage3dList;
+}
+
+Packages3d *Packages3d::parseElement( const QDomElement &element, bool *ok )
+{
+  if ( element.tagName() != "packages3d" ) {
+    qCritical() << "Expected 'packages3d', got '" << element.tagName() << "'.";
+    if ( ok ) *ok = false;
+    return nullptr;
+  }
+
+  Packages3d* result = new Packages3d();
+
+  QDomNode n;
+  for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
+    QDomElement e = n.toElement();
+    if ( e.tagName() == "package3d" ) {
+      bool ok;
+      Package3d *o = Package3d::parseElement( e, &ok );
+      if ( ok ) result->addPackage3d( o );
+    }
+  }
+
+
+  if ( ok ) *ok = true;
+  return result;
+}
+
+void Packages3d::writeElement( QXmlStreamWriter &xml ) const
+{
+  if ( !mPackage3dList.isEmpty() ) {
+    xml.writeStartElement( "packages3d" );
+    foreach( Package3d* e, mPackage3dList ) {
+      if (e)
+        e->writeElement( xml );
+    }
+    xml.writeEndElement();
+  }
+}
+
+
+Pin::Pin()
+{
+  mX_set = false;
+  mY_set = false;
+  mVisible = Visible_Invalid;
+  mLength = Length_Invalid;
+  mDirection = Direction_Invalid;
+  mFunction = Function_Invalid;
+  mSwaplevel_set = false;
+}
+
+Pin::~Pin()
+{
+}
 
 void Pin::setName( const QString &v )
 {
@@ -5456,8 +7310,9 @@ QString Pin::name() const
   return mName;
 }
 
-void Pin::setX( double v )
+void Pin::setX( const double v )
 {
+  mX_set = true;
   mX = v;
 }
 
@@ -5466,14 +7321,25 @@ double Pin::x() const
   return mX;
 }
 
-void Pin::setY( double v )
+bool Pin::xSet() const
 {
+  return mX_set;
+}
+
+void Pin::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
 double Pin::y() const
 {
   return mY;
+}
+
+bool Pin::ySet() const
+{
+  return mY_set;
 }
 
 void Pin::setVisible( const VisibleEnum &v )
@@ -5516,14 +7382,20 @@ Pin::FunctionEnum Pin::function() const
   return mFunction;
 }
 
-void Pin::setSwaplevel( int v )
+void Pin::setSwaplevel( const int v )
 {
+  mSwaplevel_set = true;
   mSwaplevel = v;
 }
 
 int Pin::swaplevel() const
 {
   return mSwaplevel;
+}
+
+bool Pin::swaplevelSet() const
+{
+  return mSwaplevel_set;
 }
 
 void Pin::setRot( const QString &v )
@@ -5687,65 +7559,68 @@ QString Pin::functionEnumToString( const FunctionEnum & v )
   }
 }
 
-Pin Pin::parseElement( const QDomElement &element, bool *ok )
+Pin *Pin::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "pin" ) {
     qCritical() << "Expected 'pin', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Pin();
+    return nullptr;
   }
 
-  Pin result = Pin();
+  Pin* result = new Pin();
 
-  result.setName( element.attribute( "name" ) );
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
+  result->setName( element.attribute( "name" ) );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
   if (element.hasAttribute("visible"))  {
     VisibleEnum visible = visibleEnumFromString( element.attribute( "visible" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "visible" ) << "\" in the \"visible\" element";
-      return Pin();
+      return nullptr;
     } else {
-      result.setVisible( visible );
+      result->setVisible( visible );
     }
   } else {
-    result.setVisible(visibleEnumFromString("both"));
+    result->setVisible(Visible_Invalid);
   }
   if (element.hasAttribute("length"))  {
     LengthEnum length = lengthEnumFromString( element.attribute( "length" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "length" ) << "\" in the \"length\" element";
-      return Pin();
+      return nullptr;
     } else {
-      result.setLength( length );
+      result->setLength( length );
     }
   } else {
-    result.setLength(lengthEnumFromString("long"));
+    result->setLength(Length_Invalid);
   }
   if (element.hasAttribute("direction"))  {
     DirectionEnum direction = directionEnumFromString( element.attribute( "direction" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "direction" ) << "\" in the \"direction\" element";
-      return Pin();
+      return nullptr;
     } else {
-      result.setDirection( direction );
+      result->setDirection( direction );
     }
   } else {
-    result.setDirection(directionEnumFromString("io"));
+    result->setDirection(Direction_Invalid);
   }
   if (element.hasAttribute("function"))  {
     FunctionEnum function = functionEnumFromString( element.attribute( "function" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "function" ) << "\" in the \"function\" element";
-      return Pin();
+      return nullptr;
     } else {
-      result.setFunction( function );
+      result->setFunction( function );
     }
   } else {
-    result.setFunction(functionEnumFromString("none"));
+    result->setFunction(Function_Invalid);
   }
-  result.setSwaplevel( element.attribute( "swaplevel" ).toInt() );
-  result.setRot( element.attribute( "rot" ) );
+  if (element.hasAttribute("swaplevel"))
+    result->setSwaplevel( element.attribute( "swaplevel" ).toInt() );
+  result->setRot( element.attribute( "rot" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -5753,9 +7628,40 @@ Pin Pin::parseElement( const QDomElement &element, bool *ok )
 
 void Pin::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "pin" );
+  xml.writeStartElement( "pin" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mVisible != Visible_Invalid)
+    xml.writeAttribute("visible", visibleEnumToString(mVisible));
+  if (mLength != Length_Invalid)
+    xml.writeAttribute("length", lengthEnumToString(mLength));
+  if (mDirection != Direction_Invalid)
+    xml.writeAttribute("direction", directionEnumToString(mDirection));
+  if (mFunction != Function_Invalid)
+    xml.writeAttribute("function", functionEnumToString(mFunction));
+  if (mSwaplevel_set)
+    xml.writeAttribute("swaplevel", QString::number( mSwaplevel ) );
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  xml.writeEndElement();
 }
 
+
+Symbol::Symbol()
+{
+  mLocallyModified = LocallyModified_Invalid;
+  mLibraryVersion_set = false;
+  mLibraryLocallyModified = LibraryLocallyModified_Invalid;
+  mDescription = nullptr;
+}
+
+Symbol::~Symbol()
+{
+}
 
 void Symbol::setName( const QString &v )
 {
@@ -5787,14 +7693,20 @@ Symbol::LocallyModifiedEnum Symbol::locallyModified() const
   return mLocallyModified;
 }
 
-void Symbol::setLibraryVersion( int v )
+void Symbol::setLibraryVersion( const int v )
 {
+  mLibraryVersion_set = true;
   mLibraryVersion = v;
 }
 
 int Symbol::libraryVersion() const
 {
   return mLibraryVersion;
+}
+
+bool Symbol::libraryVersionSet() const
+{
+  return mLibraryVersion_set;
 }
 
 void Symbol::setLibraryLocallyModified( const LibraryLocallyModifiedEnum &v )
@@ -5807,7 +7719,7 @@ Symbol::LibraryLocallyModifiedEnum Symbol::libraryLocallyModified() const
   return mLibraryLocallyModified;
 }
 
-void Symbol::addPolygon( const Polygon &v )
+void Symbol::addPolygon( Polygon* v )
 {
   mPolygonList.append( v );
 }
@@ -5822,7 +7734,7 @@ Polygon::List *Symbol::polygonList()
   return &mPolygonList;
 }
 
-void Symbol::addWire( const Wire &v )
+void Symbol::addWire( Wire* v )
 {
   mWireList.append( v );
 }
@@ -5837,7 +7749,7 @@ Wire::List *Symbol::wireList()
   return &mWireList;
 }
 
-void Symbol::addText( const Text &v )
+void Symbol::addText( Text* v )
 {
   mTextList.append( v );
 }
@@ -5852,7 +7764,7 @@ Text::List *Symbol::textList()
   return &mTextList;
 }
 
-void Symbol::addDimension( const Dimension &v )
+void Symbol::addDimension( Dimension* v )
 {
   mDimensionList.append( v );
 }
@@ -5867,7 +7779,7 @@ Dimension::List *Symbol::dimensionList()
   return &mDimensionList;
 }
 
-void Symbol::addPin( const Pin &v )
+void Symbol::addPin( Pin* v )
 {
   mPinList.append( v );
 }
@@ -5882,7 +7794,7 @@ Pin::List *Symbol::pinList()
   return &mPinList;
 }
 
-void Symbol::addCircle( const Circle &v )
+void Symbol::addCircle( Circle* v )
 {
   mCircleList.append( v );
 }
@@ -5897,7 +7809,7 @@ Circle::List *Symbol::circleList()
   return &mCircleList;
 }
 
-void Symbol::addRectangle( const Rectangle &v )
+void Symbol::addRectangle( Rectangle* v )
 {
   mRectangleList.append( v );
 }
@@ -5912,7 +7824,7 @@ Rectangle::List *Symbol::rectangleList()
   return &mRectangleList;
 }
 
-void Symbol::addFrame( const Frame &v )
+void Symbol::addFrame( Frame* v )
 {
   mFrameList.append( v );
 }
@@ -5927,14 +7839,14 @@ Frame::List *Symbol::frameList()
   return &mFrameList;
 }
 
-void Symbol::setDescription( const Description &v )
+void Symbol::setDescription( Description *v )
 {
   mDescription = v;
 }
 
 Description *Symbol::description()
 {
-  return &mDescription;
+  return mDescription;
 }
 
 Symbol::LocallyModifiedEnum Symbol::locallyModifiedEnumFromString( const QString & v, bool *ok )
@@ -5993,90 +7905,91 @@ QString Symbol::libraryLocallyModifiedEnumToString( const LibraryLocallyModified
   }
 }
 
-Symbol Symbol::parseElement( const QDomElement &element, bool *ok )
+Symbol *Symbol::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "symbol" ) {
     qCritical() << "Expected 'symbol', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Symbol();
+    return nullptr;
   }
 
-  Symbol result = Symbol();
+  Symbol* result = new Symbol();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "polygon" ) {
       bool ok;
-      Polygon o = Polygon::parseElement( e, &ok );
-      if ( ok ) result.addPolygon( o );
+      Polygon *o = Polygon::parseElement( e, &ok );
+      if ( ok ) result->addPolygon( o );
     }
     else if ( e.tagName() == "wire" ) {
       bool ok;
-      Wire o = Wire::parseElement( e, &ok );
-      if ( ok ) result.addWire( o );
+      Wire *o = Wire::parseElement( e, &ok );
+      if ( ok ) result->addWire( o );
     }
     else if ( e.tagName() == "text" ) {
       bool ok;
-      Text o = Text::parseElement( e, &ok );
-      if ( ok ) result.addText( o );
+      Text *o = Text::parseElement( e, &ok );
+      if ( ok ) result->addText( o );
     }
     else if ( e.tagName() == "dimension" ) {
       bool ok;
-      Dimension o = Dimension::parseElement( e, &ok );
-      if ( ok ) result.addDimension( o );
+      Dimension *o = Dimension::parseElement( e, &ok );
+      if ( ok ) result->addDimension( o );
     }
     else if ( e.tagName() == "pin" ) {
       bool ok;
-      Pin o = Pin::parseElement( e, &ok );
-      if ( ok ) result.addPin( o );
+      Pin *o = Pin::parseElement( e, &ok );
+      if ( ok ) result->addPin( o );
     }
     else if ( e.tagName() == "circle" ) {
       bool ok;
-      Circle o = Circle::parseElement( e, &ok );
-      if ( ok ) result.addCircle( o );
+      Circle *o = Circle::parseElement( e, &ok );
+      if ( ok ) result->addCircle( o );
     }
     else if ( e.tagName() == "rectangle" ) {
       bool ok;
-      Rectangle o = Rectangle::parseElement( e, &ok );
-      if ( ok ) result.addRectangle( o );
+      Rectangle *o = Rectangle::parseElement( e, &ok );
+      if ( ok ) result->addRectangle( o );
     }
     else if ( e.tagName() == "frame" ) {
       bool ok;
-      Frame o = Frame::parseElement( e, &ok );
-      if ( ok ) result.addFrame( o );
+      Frame *o = Frame::parseElement( e, &ok );
+      if ( ok ) result->addFrame( o );
     }
     else if ( e.tagName() == "description" ) {
       bool ok;
-      Description o = Description::parseElement( e, &ok );
-      if ( ok ) result.setDescription( o );
+      Description *o = Description::parseElement( e, &ok );
+      if ( ok ) result->setDescription( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setUrn( element.attribute( "urn" ) );
+  result->setName( element.attribute( "name" ) );
+  result->setUrn( element.attribute( "urn" ) );
   if (element.hasAttribute("locally_modified"))  {
     LocallyModifiedEnum locally_modified = locallyModifiedEnumFromString( element.attribute( "locally_modified" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "locally_modified" ) << "\" in the \"locally_modified\" element";
-      return Symbol();
+      return nullptr;
     } else {
-      result.setLocallyModified( locally_modified );
+      result->setLocallyModified( locally_modified );
     }
   } else {
-    result.setLocallyModified(locallyModifiedEnumFromString("no"));
+    result->setLocallyModified(LocallyModified_Invalid);
   }
-  result.setLibraryVersion( element.attribute( "library_version" ).toInt() );
+  if (element.hasAttribute("library_version"))
+    result->setLibraryVersion( element.attribute( "library_version" ).toInt() );
   if (element.hasAttribute("library_locally_modified"))  {
     LibraryLocallyModifiedEnum library_locally_modified = libraryLocallyModifiedEnumFromString( element.attribute( "library_locally_modified" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "library_locally_modified" ) << "\" in the \"library_locally_modified\" element";
-      return Symbol();
+      return nullptr;
     } else {
-      result.setLibraryLocallyModified( library_locally_modified );
+      result->setLibraryLocallyModified( library_locally_modified );
     }
   } else {
-    result.setLibraryLocallyModified(libraryLocallyModifiedEnumFromString("no"));
+    result->setLibraryLocallyModified(LibraryLocallyModified_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -6086,41 +7999,63 @@ Symbol Symbol::parseElement( const QDomElement &element, bool *ok )
 void Symbol::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "symbol" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("urn", urn() );
-  xml.writeAttribute("locally_modified", locallyModifiedEnumToString( locallyModified() ));
-  xml.writeAttribute("library_version", QString::number( libraryVersion() ) );
-  xml.writeAttribute("library_locally_modified", libraryLocallyModifiedEnumToString( libraryLocallyModified() ));
-  foreach( Polygon e, mPolygonList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mUrn.isEmpty())
+    xml.writeAttribute("urn", mUrn );
+  if (mLocallyModified != LocallyModified_Invalid)
+    xml.writeAttribute("locally_modified", locallyModifiedEnumToString(mLocallyModified));
+  if (mLibraryVersion_set)
+    xml.writeAttribute("library_version", QString::number( mLibraryVersion ) );
+  if (mLibraryLocallyModified != LibraryLocallyModified_Invalid)
+    xml.writeAttribute("library_locally_modified", libraryLocallyModifiedEnumToString(mLibraryLocallyModified));
+  foreach( Polygon* e, mPolygonList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Wire e, mWireList ) {
-    e.writeElement( xml );
+  foreach( Wire* e, mWireList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Text e, mTextList ) {
-    e.writeElement( xml );
+  foreach( Text* e, mTextList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Dimension e, mDimensionList ) {
-    e.writeElement( xml );
+  foreach( Dimension* e, mDimensionList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Pin e, mPinList ) {
-    e.writeElement( xml );
+  foreach( Pin* e, mPinList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Circle e, mCircleList ) {
-    e.writeElement( xml );
+  foreach( Circle* e, mCircleList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Rectangle e, mRectangleList ) {
-    e.writeElement( xml );
+  foreach( Rectangle* e, mRectangleList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Frame e, mFrameList ) {
-    e.writeElement( xml );
+  foreach( Frame* e, mFrameList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  mDescription.writeElement( xml );
+  if (mDescription)
+    mDescription->writeElement( xml );
   xml.writeEndElement();
 }
 
 
-void Symbols::addSymbol( const Symbol &v )
+Symbols::Symbols()
+{
+}
+
+Symbols::~Symbols()
+{
+}
+
+void Symbols::addSymbol( Symbol* v )
 {
   mSymbolList.append( v );
 }
@@ -6135,23 +8070,23 @@ Symbol::List *Symbols::symbolList()
   return &mSymbolList;
 }
 
-Symbols Symbols::parseElement( const QDomElement &element, bool *ok )
+Symbols *Symbols::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "symbols" ) {
     qCritical() << "Expected 'symbols', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Symbols();
+    return nullptr;
   }
 
-  Symbols result = Symbols();
+  Symbols* result = new Symbols();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "symbol" ) {
       bool ok;
-      Symbol o = Symbol::parseElement( e, &ok );
-      if ( ok ) result.addSymbol( o );
+      Symbol *o = Symbol::parseElement( e, &ok );
+      if ( ok ) result->addSymbol( o );
     }
   }
 
@@ -6164,13 +8099,26 @@ void Symbols::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mSymbolList.isEmpty() ) {
     xml.writeStartElement( "symbols" );
-    foreach( Symbol e, mSymbolList ) {
-      e.writeElement( xml );
+    foreach( Symbol* e, mSymbolList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Gate::Gate()
+{
+  mX_set = false;
+  mY_set = false;
+  mAddlevel = Addlevel_Invalid;
+  mSwaplevel_set = false;
+}
+
+Gate::~Gate()
+{
+}
 
 void Gate::setName( const QString &v )
 {
@@ -6192,8 +8140,9 @@ QString Gate::symbol() const
   return mSymbol;
 }
 
-void Gate::setX( double v )
+void Gate::setX( const double v )
 {
+  mX_set = true;
   mX = v;
 }
 
@@ -6202,14 +8151,25 @@ double Gate::x() const
   return mX;
 }
 
-void Gate::setY( double v )
+bool Gate::xSet() const
 {
+  return mX_set;
+}
+
+void Gate::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
 double Gate::y() const
 {
   return mY;
+}
+
+bool Gate::ySet() const
+{
+  return mY_set;
 }
 
 void Gate::setAddlevel( const AddlevelEnum &v )
@@ -6222,14 +8182,20 @@ Gate::AddlevelEnum Gate::addlevel() const
   return mAddlevel;
 }
 
-void Gate::setSwaplevel( int v )
+void Gate::setSwaplevel( const int v )
 {
+  mSwaplevel_set = true;
   mSwaplevel = v;
 }
 
 int Gate::swaplevel() const
 {
   return mSwaplevel;
+}
+
+bool Gate::swaplevelSet() const
+{
+  return mSwaplevel_set;
 }
 
 Gate::AddlevelEnum Gate::addlevelEnumFromString( const QString & v, bool *ok )
@@ -6269,32 +8235,35 @@ QString Gate::addlevelEnumToString( const AddlevelEnum & v )
   }
 }
 
-Gate Gate::parseElement( const QDomElement &element, bool *ok )
+Gate *Gate::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "gate" ) {
     qCritical() << "Expected 'gate', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Gate();
+    return nullptr;
   }
 
-  Gate result = Gate();
+  Gate* result = new Gate();
 
-  result.setName( element.attribute( "name" ) );
-  result.setSymbol( element.attribute( "symbol" ) );
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
+  result->setName( element.attribute( "name" ) );
+  result->setSymbol( element.attribute( "symbol" ) );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
   if (element.hasAttribute("addlevel"))  {
     AddlevelEnum addlevel = addlevelEnumFromString( element.attribute( "addlevel" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "addlevel" ) << "\" in the \"addlevel\" element";
-      return Gate();
+      return nullptr;
     } else {
-      result.setAddlevel( addlevel );
+      result->setAddlevel( addlevel );
     }
   } else {
-    result.setAddlevel(addlevelEnumFromString("next"));
+    result->setAddlevel(Addlevel_Invalid);
   }
-  result.setSwaplevel( element.attribute( "swaplevel" ).toInt() );
+  if (element.hasAttribute("swaplevel"))
+    result->setSwaplevel( element.attribute( "swaplevel" ).toInt() );
 
   if ( ok ) *ok = true;
   return result;
@@ -6302,11 +8271,32 @@ Gate Gate::parseElement( const QDomElement &element, bool *ok )
 
 void Gate::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "gate" );
+  xml.writeStartElement( "gate" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mSymbol.isEmpty())
+    xml.writeAttribute("symbol", mSymbol );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mAddlevel != Addlevel_Invalid)
+    xml.writeAttribute("addlevel", addlevelEnumToString(mAddlevel));
+  if (mSwaplevel_set)
+    xml.writeAttribute("swaplevel", QString::number( mSwaplevel ) );
+  xml.writeEndElement();
 }
 
 
-void Gates::addGate( const Gate &v )
+Gates::Gates()
+{
+}
+
+Gates::~Gates()
+{
+}
+
+void Gates::addGate( Gate* v )
 {
   mGateList.append( v );
 }
@@ -6321,23 +8311,23 @@ Gate::List *Gates::gateList()
   return &mGateList;
 }
 
-Gates Gates::parseElement( const QDomElement &element, bool *ok )
+Gates *Gates::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "gates" ) {
     qCritical() << "Expected 'gates', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Gates();
+    return nullptr;
   }
 
-  Gates result = Gates();
+  Gates* result = new Gates();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "gate" ) {
       bool ok;
-      Gate o = Gate::parseElement( e, &ok );
-      if ( ok ) result.addGate( o );
+      Gate *o = Gate::parseElement( e, &ok );
+      if ( ok ) result->addGate( o );
     }
   }
 
@@ -6350,13 +8340,23 @@ void Gates::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mGateList.isEmpty() ) {
     xml.writeStartElement( "gates" );
-    foreach( Gate e, mGateList ) {
-      e.writeElement( xml );
+    foreach( Gate* e, mGateList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Connect::Connect()
+{
+  mRoute = Route_Invalid;
+}
+
+Connect::~Connect()
+{
+}
 
 void Connect::setGate( const QString &v )
 {
@@ -6426,29 +8426,29 @@ QString Connect::routeEnumToString( const RouteEnum & v )
   }
 }
 
-Connect Connect::parseElement( const QDomElement &element, bool *ok )
+Connect *Connect::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "connect" ) {
     qCritical() << "Expected 'connect', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Connect();
+    return nullptr;
   }
 
-  Connect result = Connect();
+  Connect* result = new Connect();
 
-  result.setGate( element.attribute( "gate" ) );
-  result.setPin( element.attribute( "pin" ) );
-  result.setPad( element.attribute( "pad" ) );
+  result->setGate( element.attribute( "gate" ) );
+  result->setPin( element.attribute( "pin" ) );
+  result->setPad( element.attribute( "pad" ) );
   if (element.hasAttribute("route"))  {
     RouteEnum route = routeEnumFromString( element.attribute( "route" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "route" ) << "\" in the \"route\" element";
-      return Connect();
+      return nullptr;
     } else {
-      result.setRoute( route );
+      result->setRoute( route );
     }
   } else {
-    result.setRoute(routeEnumFromString("all"));
+    result->setRoute(Route_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -6457,11 +8457,28 @@ Connect Connect::parseElement( const QDomElement &element, bool *ok )
 
 void Connect::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "connect" );
+  xml.writeStartElement( "connect" );
+  if (!mGate.isEmpty())
+    xml.writeAttribute("gate", mGate );
+  if (!mPin.isEmpty())
+    xml.writeAttribute("pin", mPin );
+  if (!mPad.isEmpty())
+    xml.writeAttribute("pad", mPad );
+  if (mRoute != Route_Invalid)
+    xml.writeAttribute("route", routeEnumToString(mRoute));
+  xml.writeEndElement();
 }
 
 
-void Connects::addConnect( const Connect &v )
+Connects::Connects()
+{
+}
+
+Connects::~Connects()
+{
+}
+
+void Connects::addConnect( Connect* v )
 {
   mConnectList.append( v );
 }
@@ -6476,23 +8493,23 @@ Connect::List *Connects::connectList()
   return &mConnectList;
 }
 
-Connects Connects::parseElement( const QDomElement &element, bool *ok )
+Connects *Connects::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "connects" ) {
     qCritical() << "Expected 'connects', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Connects();
+    return nullptr;
   }
 
-  Connects result = Connects();
+  Connects* result = new Connects();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "connect" ) {
       bool ok;
-      Connect o = Connect::parseElement( e, &ok );
-      if ( ok ) result.addConnect( o );
+      Connect *o = Connect::parseElement( e, &ok );
+      if ( ok ) result->addConnect( o );
     }
   }
 
@@ -6505,13 +8522,22 @@ void Connects::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mConnectList.isEmpty() ) {
     xml.writeStartElement( "connects" );
-    foreach( Connect e, mConnectList ) {
-      e.writeElement( xml );
+    foreach( Connect* e, mConnectList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Package3dinstance::Package3dinstance()
+{
+}
+
+Package3dinstance::~Package3dinstance()
+{
+}
 
 void Package3dinstance::setPackage3dUrn( const QString &v )
 {
@@ -6523,17 +8549,17 @@ QString Package3dinstance::package3dUrn() const
   return mPackage3dUrn;
 }
 
-Package3dinstance Package3dinstance::parseElement( const QDomElement &element, bool *ok )
+Package3dinstance *Package3dinstance::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "package3dinstance" ) {
     qCritical() << "Expected 'package3dinstance', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Package3dinstance();
+    return nullptr;
   }
 
-  Package3dinstance result = Package3dinstance();
+  Package3dinstance* result = new Package3dinstance();
 
-  result.setPackage3dUrn( element.attribute( "package3d_urn" ) );
+  result->setPackage3dUrn( element.attribute( "package3d_urn" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -6541,11 +8567,22 @@ Package3dinstance Package3dinstance::parseElement( const QDomElement &element, b
 
 void Package3dinstance::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "package3dinstance" );
+  xml.writeStartElement( "package3dinstance" );
+  if (!mPackage3dUrn.isEmpty())
+    xml.writeAttribute("package3d_urn", mPackage3dUrn );
+  xml.writeEndElement();
 }
 
 
-void Package3dinstances::addPackage3dinstance( const Package3dinstance &v )
+Package3dinstances::Package3dinstances()
+{
+}
+
+Package3dinstances::~Package3dinstances()
+{
+}
+
+void Package3dinstances::addPackage3dinstance( Package3dinstance* v )
 {
   mPackage3dinstanceList.append( v );
 }
@@ -6560,23 +8597,23 @@ Package3dinstance::List *Package3dinstances::package3dinstanceList()
   return &mPackage3dinstanceList;
 }
 
-Package3dinstances Package3dinstances::parseElement( const QDomElement &element, bool *ok )
+Package3dinstances *Package3dinstances::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "package3dinstances" ) {
     qCritical() << "Expected 'package3dinstances', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Package3dinstances();
+    return nullptr;
   }
 
-  Package3dinstances result = Package3dinstances();
+  Package3dinstances* result = new Package3dinstances();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "package3dinstance" ) {
       bool ok;
-      Package3dinstance o = Package3dinstance::parseElement( e, &ok );
-      if ( ok ) result.addPackage3dinstance( o );
+      Package3dinstance *o = Package3dinstance::parseElement( e, &ok );
+      if ( ok ) result->addPackage3dinstance( o );
     }
   }
 
@@ -6589,13 +8626,22 @@ void Package3dinstances::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mPackage3dinstanceList.isEmpty() ) {
     xml.writeStartElement( "package3dinstances" );
-    foreach( Package3dinstance e, mPackage3dinstanceList ) {
-      e.writeElement( xml );
+    foreach( Package3dinstance* e, mPackage3dinstanceList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Technology::Technology()
+{
+}
+
+Technology::~Technology()
+{
+}
 
 void Technology::setName( const QString &v )
 {
@@ -6607,7 +8653,7 @@ QString Technology::name() const
   return mName;
 }
 
-void Technology::addAttribute( const Attribute &v )
+void Technology::addAttribute( Attribute* v )
 {
   mAttributeList.append( v );
 }
@@ -6622,27 +8668,27 @@ Attribute::List *Technology::attributeList()
   return &mAttributeList;
 }
 
-Technology Technology::parseElement( const QDomElement &element, bool *ok )
+Technology *Technology::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "technology" ) {
     qCritical() << "Expected 'technology', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Technology();
+    return nullptr;
   }
 
-  Technology result = Technology();
+  Technology* result = new Technology();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "attribute" ) {
       bool ok;
-      Attribute o = Attribute::parseElement( e, &ok );
-      if ( ok ) result.addAttribute( o );
+      Attribute *o = Attribute::parseElement( e, &ok );
+      if ( ok ) result->addAttribute( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
+  result->setName( element.attribute( "name" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -6651,15 +8697,25 @@ Technology Technology::parseElement( const QDomElement &element, bool *ok )
 void Technology::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "technology" );
-  xml.writeAttribute("name", name() );
-  foreach( Attribute e, mAttributeList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  foreach( Attribute* e, mAttributeList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
 
-void Technologies::addTechnology( const Technology &v )
+Technologies::Technologies()
+{
+}
+
+Technologies::~Technologies()
+{
+}
+
+void Technologies::addTechnology( Technology* v )
 {
   mTechnologyList.append( v );
 }
@@ -6674,23 +8730,23 @@ Technology::List *Technologies::technologyList()
   return &mTechnologyList;
 }
 
-Technologies Technologies::parseElement( const QDomElement &element, bool *ok )
+Technologies *Technologies::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "technologies" ) {
     qCritical() << "Expected 'technologies', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Technologies();
+    return nullptr;
   }
 
-  Technologies result = Technologies();
+  Technologies* result = new Technologies();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "technology" ) {
       bool ok;
-      Technology o = Technology::parseElement( e, &ok );
-      if ( ok ) result.addTechnology( o );
+      Technology *o = Technology::parseElement( e, &ok );
+      if ( ok ) result->addTechnology( o );
     }
   }
 
@@ -6703,13 +8759,25 @@ void Technologies::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mTechnologyList.isEmpty() ) {
     xml.writeStartElement( "technologies" );
-    foreach( Technology e, mTechnologyList ) {
-      e.writeElement( xml );
+    foreach( Technology* e, mTechnologyList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Device::Device()
+{
+  mConnects = nullptr;
+  mPackage3dinstances = nullptr;
+  mTechnologies = nullptr;
+}
+
+Device::~Device()
+{
+}
 
 void Device::setName( const QString &v )
 {
@@ -6731,68 +8799,68 @@ QString Device::package() const
   return mPackage;
 }
 
-void Device::setConnects( const Connects &v )
+void Device::setConnects( Connects *v )
 {
   mConnects = v;
 }
 
 Connects *Device::connects()
 {
-  return &mConnects;
+  return mConnects;
 }
 
-void Device::setPackage3dinstances( const Package3dinstances &v )
+void Device::setPackage3dinstances( Package3dinstances *v )
 {
   mPackage3dinstances = v;
 }
 
 Package3dinstances *Device::package3dinstances()
 {
-  return &mPackage3dinstances;
+  return mPackage3dinstances;
 }
 
-void Device::setTechnologies( const Technologies &v )
+void Device::setTechnologies( Technologies *v )
 {
   mTechnologies = v;
 }
 
 Technologies *Device::technologies()
 {
-  return &mTechnologies;
+  return mTechnologies;
 }
 
-Device Device::parseElement( const QDomElement &element, bool *ok )
+Device *Device::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "device" ) {
     qCritical() << "Expected 'device', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Device();
+    return nullptr;
   }
 
-  Device result = Device();
+  Device* result = new Device();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "connects" ) {
       bool ok;
-      Connects o = Connects::parseElement( e, &ok );
-      if ( ok ) result.setConnects( o );
+      Connects *o = Connects::parseElement( e, &ok );
+      if ( ok ) result->setConnects( o );
     }
     else if ( e.tagName() == "package3dinstances" ) {
       bool ok;
-      Package3dinstances o = Package3dinstances::parseElement( e, &ok );
-      if ( ok ) result.setPackage3dinstances( o );
+      Package3dinstances *o = Package3dinstances::parseElement( e, &ok );
+      if ( ok ) result->setPackage3dinstances( o );
     }
     else if ( e.tagName() == "technologies" ) {
       bool ok;
-      Technologies o = Technologies::parseElement( e, &ok );
-      if ( ok ) result.setTechnologies( o );
+      Technologies *o = Technologies::parseElement( e, &ok );
+      if ( ok ) result->setTechnologies( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setPackage( element.attribute( "package" ) );
+  result->setName( element.attribute( "name" ) );
+  result->setPackage( element.attribute( "package" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -6801,16 +8869,29 @@ Device Device::parseElement( const QDomElement &element, bool *ok )
 void Device::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "device" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("package", package() );
-  mConnects.writeElement( xml );
-  mPackage3dinstances.writeElement( xml );
-  mTechnologies.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mPackage.isEmpty())
+    xml.writeAttribute("package", mPackage );
+  if (mConnects)
+    mConnects->writeElement( xml );
+  if (mPackage3dinstances)
+    mPackage3dinstances->writeElement( xml );
+  if (mTechnologies)
+    mTechnologies->writeElement( xml );
   xml.writeEndElement();
 }
 
 
-void Devices::addDevice( const Device &v )
+Devices::Devices()
+{
+}
+
+Devices::~Devices()
+{
+}
+
+void Devices::addDevice( Device* v )
 {
   mDeviceList.append( v );
 }
@@ -6825,23 +8906,23 @@ Device::List *Devices::deviceList()
   return &mDeviceList;
 }
 
-Devices Devices::parseElement( const QDomElement &element, bool *ok )
+Devices *Devices::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "devices" ) {
     qCritical() << "Expected 'devices', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Devices();
+    return nullptr;
   }
 
-  Devices result = Devices();
+  Devices* result = new Devices();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "device" ) {
       bool ok;
-      Device o = Device::parseElement( e, &ok );
-      if ( ok ) result.addDevice( o );
+      Device *o = Device::parseElement( e, &ok );
+      if ( ok ) result->addDevice( o );
     }
   }
 
@@ -6854,13 +8935,22 @@ void Devices::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mDeviceList.isEmpty() ) {
     xml.writeStartElement( "devices" );
-    foreach( Device e, mDeviceList ) {
-      e.writeElement( xml );
+    foreach( Device* e, mDeviceList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Pinmap::Pinmap()
+{
+}
+
+Pinmap::~Pinmap()
+{
+}
 
 void Pinmap::setGate( const QString &v )
 {
@@ -6892,19 +8982,19 @@ QString Pinmap::pinorder() const
   return mPinorder;
 }
 
-Pinmap Pinmap::parseElement( const QDomElement &element, bool *ok )
+Pinmap *Pinmap::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "pinmap" ) {
     qCritical() << "Expected 'pinmap', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Pinmap();
+    return nullptr;
   }
 
-  Pinmap result = Pinmap();
+  Pinmap* result = new Pinmap();
 
-  result.setGate( element.attribute( "gate" ) );
-  result.setPin( element.attribute( "pin" ) );
-  result.setPinorder( element.attribute( "pinorder" ) );
+  result->setGate( element.attribute( "gate" ) );
+  result->setPin( element.attribute( "pin" ) );
+  result->setPinorder( element.attribute( "pinorder" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -6912,9 +9002,26 @@ Pinmap Pinmap::parseElement( const QDomElement &element, bool *ok )
 
 void Pinmap::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "pinmap" );
+  xml.writeStartElement( "pinmap" );
+  if (!mGate.isEmpty())
+    xml.writeAttribute("gate", mGate );
+  if (!mPin.isEmpty())
+    xml.writeAttribute("pin", mPin );
+  if (!mPinorder.isEmpty())
+    xml.writeAttribute("pinorder", mPinorder );
+  xml.writeEndElement();
 }
 
+
+Pinmapping::Pinmapping()
+{
+  mIsusermap = Isusermap_Invalid;
+  mIddevicewide = Iddevicewide_Invalid;
+}
+
+Pinmapping::~Pinmapping()
+{
+}
 
 void Pinmapping::setIsusermap( const IsusermapEnum &v )
 {
@@ -6946,7 +9053,7 @@ QString Pinmapping::spiceprefix() const
   return mSpiceprefix;
 }
 
-void Pinmapping::addPinmap( const Pinmap &v )
+void Pinmapping::addPinmap( Pinmap* v )
 {
   mPinmapList.append( v );
 }
@@ -7017,23 +9124,23 @@ QString Pinmapping::iddevicewideEnumToString( const IddevicewideEnum & v )
   }
 }
 
-Pinmapping Pinmapping::parseElement( const QDomElement &element, bool *ok )
+Pinmapping *Pinmapping::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "pinmapping" ) {
     qCritical() << "Expected 'pinmapping', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Pinmapping();
+    return nullptr;
   }
 
-  Pinmapping result = Pinmapping();
+  Pinmapping* result = new Pinmapping();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "pinmap" ) {
       bool ok;
-      Pinmap o = Pinmap::parseElement( e, &ok );
-      if ( ok ) result.addPinmap( o );
+      Pinmap *o = Pinmap::parseElement( e, &ok );
+      if ( ok ) result->addPinmap( o );
     }
   }
 
@@ -7041,25 +9148,25 @@ Pinmapping Pinmapping::parseElement( const QDomElement &element, bool *ok )
     IsusermapEnum isusermap = isusermapEnumFromString( element.attribute( "isusermap" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "isusermap" ) << "\" in the \"isusermap\" element";
-      return Pinmapping();
+      return nullptr;
     } else {
-      result.setIsusermap( isusermap );
+      result->setIsusermap( isusermap );
     }
   } else {
-    result.setIsusermap(isusermapEnumFromString("yes"));
+    result->setIsusermap(Isusermap_Invalid);
   }
   if (element.hasAttribute("iddevicewide"))  {
     IddevicewideEnum iddevicewide = iddevicewideEnumFromString( element.attribute( "iddevicewide" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "iddevicewide" ) << "\" in the \"iddevicewide\" element";
-      return Pinmapping();
+      return nullptr;
     } else {
-      result.setIddevicewide( iddevicewide );
+      result->setIddevicewide( iddevicewide );
     }
   } else {
-    result.setIddevicewide(iddevicewideEnumFromString("yes"));
+    result->setIddevicewide(Iddevicewide_Invalid);
   }
-  result.setSpiceprefix( element.attribute( "spiceprefix" ) );
+  result->setSpiceprefix( element.attribute( "spiceprefix" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -7068,15 +9175,27 @@ Pinmapping Pinmapping::parseElement( const QDomElement &element, bool *ok )
 void Pinmapping::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "pinmapping" );
-  xml.writeAttribute("isusermap", isusermapEnumToString( isusermap() ));
-  xml.writeAttribute("iddevicewide", iddevicewideEnumToString( iddevicewide() ));
-  xml.writeAttribute("spiceprefix", spiceprefix() );
-  foreach( Pinmap e, mPinmapList ) {
-    e.writeElement( xml );
+  if (mIsusermap != Isusermap_Invalid)
+    xml.writeAttribute("isusermap", isusermapEnumToString(mIsusermap));
+  if (mIddevicewide != Iddevicewide_Invalid)
+    xml.writeAttribute("iddevicewide", iddevicewideEnumToString(mIddevicewide));
+  if (!mSpiceprefix.isEmpty())
+    xml.writeAttribute("spiceprefix", mSpiceprefix );
+  foreach( Pinmap* e, mPinmapList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
+
+Model::Model()
+{
+}
+
+Model::~Model()
+{
+}
 
 void Model::setName( const QString &v )
 {
@@ -7098,18 +9217,18 @@ QString Model::value() const
   return mValue;
 }
 
-Model Model::parseElement( const QDomElement &element, bool *ok )
+Model *Model::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "model" ) {
     qCritical() << "Expected 'model', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Model();
+    return nullptr;
   }
 
-  Model result = Model();
+  Model* result = new Model();
 
-  result.setValue( element.text() );
-  result.setName( element.attribute( "name" ) );
+  result->setValue( element.text() );
+  result->setName( element.attribute( "name" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -7119,55 +9238,66 @@ void Model::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !value().isEmpty() ) {
     xml.writeStartElement( "model" );
-  xml.writeAttribute("name", name() );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
     xml.writeCharacters( value() );
     xml.writeEndElement();
   }
 }
 
 
-void Spice::setPinmapping( const Pinmapping &v )
+Spice::Spice()
+{
+  mPinmapping = nullptr;
+  mModel = nullptr;
+}
+
+Spice::~Spice()
+{
+}
+
+void Spice::setPinmapping( Pinmapping *v )
 {
   mPinmapping = v;
 }
 
 Pinmapping *Spice::pinmapping()
 {
-  return &mPinmapping;
+  return mPinmapping;
 }
 
-void Spice::setModel( const Model &v )
+void Spice::setModel( Model *v )
 {
   mModel = v;
 }
 
 Model *Spice::model()
 {
-  return &mModel;
+  return mModel;
 }
 
-Spice Spice::parseElement( const QDomElement &element, bool *ok )
+Spice *Spice::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "spice" ) {
     qCritical() << "Expected 'spice', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Spice();
+    return nullptr;
   }
 
-  Spice result = Spice();
+  Spice* result = new Spice();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "pinmapping" ) {
       bool ok;
-      Pinmapping o = Pinmapping::parseElement( e, &ok );
-      if ( ok ) result.setPinmapping( o );
+      Pinmapping *o = Pinmapping::parseElement( e, &ok );
+      if ( ok ) result->setPinmapping( o );
     }
     else if ( e.tagName() == "model" ) {
       bool ok;
-      Model o = Model::parseElement( e, &ok );
-      if ( ok ) result.setModel( o );
+      Model *o = Model::parseElement( e, &ok );
+      if ( ok ) result->setModel( o );
     }
   }
 
@@ -7179,11 +9309,29 @@ Spice Spice::parseElement( const QDomElement &element, bool *ok )
 void Spice::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "spice" );
-  mPinmapping.writeElement( xml );
-  mModel.writeElement( xml );
+  if (mPinmapping)
+    mPinmapping->writeElement( xml );
+  if (mModel)
+    mModel->writeElement( xml );
   xml.writeEndElement();
 }
 
+
+Deviceset::Deviceset()
+{
+  mLocallyModified = LocallyModified_Invalid;
+  mUservalue = Uservalue_Invalid;
+  mLibraryVersion_set = false;
+  mLibraryLocallyModified = LibraryLocallyModified_Invalid;
+  mDescription = nullptr;
+  mGates = nullptr;
+  mDevices = nullptr;
+  mSpice = nullptr;
+}
+
+Deviceset::~Deviceset()
+{
+}
 
 void Deviceset::setName( const QString &v )
 {
@@ -7235,14 +9383,20 @@ Deviceset::UservalueEnum Deviceset::uservalue() const
   return mUservalue;
 }
 
-void Deviceset::setLibraryVersion( int v )
+void Deviceset::setLibraryVersion( const int v )
 {
+  mLibraryVersion_set = true;
   mLibraryVersion = v;
 }
 
 int Deviceset::libraryVersion() const
 {
   return mLibraryVersion;
+}
+
+bool Deviceset::libraryVersionSet() const
+{
+  return mLibraryVersion_set;
 }
 
 void Deviceset::setLibraryLocallyModified( const LibraryLocallyModifiedEnum &v )
@@ -7255,44 +9409,44 @@ Deviceset::LibraryLocallyModifiedEnum Deviceset::libraryLocallyModified() const
   return mLibraryLocallyModified;
 }
 
-void Deviceset::setDescription( const Description &v )
+void Deviceset::setDescription( Description *v )
 {
   mDescription = v;
 }
 
 Description *Deviceset::description()
 {
-  return &mDescription;
+  return mDescription;
 }
 
-void Deviceset::setGates( const Gates &v )
+void Deviceset::setGates( Gates *v )
 {
   mGates = v;
 }
 
 Gates *Deviceset::gates()
 {
-  return &mGates;
+  return mGates;
 }
 
-void Deviceset::setDevices( const Devices &v )
+void Deviceset::setDevices( Devices *v )
 {
   mDevices = v;
 }
 
 Devices *Deviceset::devices()
 {
-  return &mDevices;
+  return mDevices;
 }
 
-void Deviceset::setSpice( const Spice &v )
+void Deviceset::setSpice( Spice *v )
 {
   mSpice = v;
 }
 
 Spice *Deviceset::spice()
 {
-  return &mSpice;
+  return mSpice;
 }
 
 Deviceset::LocallyModifiedEnum Deviceset::locallyModifiedEnumFromString( const QString & v, bool *ok )
@@ -7379,77 +9533,78 @@ QString Deviceset::libraryLocallyModifiedEnumToString( const LibraryLocallyModif
   }
 }
 
-Deviceset Deviceset::parseElement( const QDomElement &element, bool *ok )
+Deviceset *Deviceset::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "deviceset" ) {
     qCritical() << "Expected 'deviceset', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Deviceset();
+    return nullptr;
   }
 
-  Deviceset result = Deviceset();
+  Deviceset* result = new Deviceset();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "description" ) {
       bool ok;
-      Description o = Description::parseElement( e, &ok );
-      if ( ok ) result.setDescription( o );
+      Description *o = Description::parseElement( e, &ok );
+      if ( ok ) result->setDescription( o );
     }
     else if ( e.tagName() == "gates" ) {
       bool ok;
-      Gates o = Gates::parseElement( e, &ok );
-      if ( ok ) result.setGates( o );
+      Gates *o = Gates::parseElement( e, &ok );
+      if ( ok ) result->setGates( o );
     }
     else if ( e.tagName() == "devices" ) {
       bool ok;
-      Devices o = Devices::parseElement( e, &ok );
-      if ( ok ) result.setDevices( o );
+      Devices *o = Devices::parseElement( e, &ok );
+      if ( ok ) result->setDevices( o );
     }
     else if ( e.tagName() == "spice" ) {
       bool ok;
-      Spice o = Spice::parseElement( e, &ok );
-      if ( ok ) result.setSpice( o );
+      Spice *o = Spice::parseElement( e, &ok );
+      if ( ok ) result->setSpice( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setUrn( element.attribute( "urn" ) );
+  result->setName( element.attribute( "name" ) );
+  result->setUrn( element.attribute( "urn" ) );
   if (element.hasAttribute("locally_modified"))  {
     LocallyModifiedEnum locally_modified = locallyModifiedEnumFromString( element.attribute( "locally_modified" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "locally_modified" ) << "\" in the \"locally_modified\" element";
-      return Deviceset();
+      return nullptr;
     } else {
-      result.setLocallyModified( locally_modified );
+      result->setLocallyModified( locally_modified );
     }
   } else {
-    result.setLocallyModified(locallyModifiedEnumFromString("no"));
+    result->setLocallyModified(LocallyModified_Invalid);
   }
-  result.setPrefix( element.attribute( "prefix" ) );
+  result->setPrefix( element.attribute( "prefix" ) );
   if (element.hasAttribute("uservalue"))  {
     UservalueEnum uservalue = uservalueEnumFromString( element.attribute( "uservalue" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "uservalue" ) << "\" in the \"uservalue\" element";
-      return Deviceset();
+      return nullptr;
     } else {
-      result.setUservalue( uservalue );
+      result->setUservalue( uservalue );
     }
   } else {
-    result.setUservalue(uservalueEnumFromString("no"));
+    result->setUservalue(Uservalue_Invalid);
   }
-  result.setLibraryVersion( element.attribute( "library_version" ).toInt() );
+  if (element.hasAttribute("library_version"))
+    result->setLibraryVersion( element.attribute( "library_version" ).toInt() );
   if (element.hasAttribute("library_locally_modified"))  {
     LibraryLocallyModifiedEnum library_locally_modified = libraryLocallyModifiedEnumFromString( element.attribute( "library_locally_modified" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "library_locally_modified" ) << "\" in the \"library_locally_modified\" element";
-      return Deviceset();
+      return nullptr;
     } else {
-      result.setLibraryLocallyModified( library_locally_modified );
+      result->setLibraryLocallyModified( library_locally_modified );
     }
   } else {
-    result.setLibraryLocallyModified(libraryLocallyModifiedEnumFromString("no"));
+    result->setLibraryLocallyModified(LibraryLocallyModified_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -7459,22 +9614,41 @@ Deviceset Deviceset::parseElement( const QDomElement &element, bool *ok )
 void Deviceset::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "deviceset" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("urn", urn() );
-  xml.writeAttribute("locally_modified", locallyModifiedEnumToString( locallyModified() ));
-  xml.writeAttribute("prefix", prefix() );
-  xml.writeAttribute("uservalue", uservalueEnumToString( uservalue() ));
-  xml.writeAttribute("library_version", QString::number( libraryVersion() ) );
-  xml.writeAttribute("library_locally_modified", libraryLocallyModifiedEnumToString( libraryLocallyModified() ));
-  mDescription.writeElement( xml );
-  mGates.writeElement( xml );
-  mDevices.writeElement( xml );
-  mSpice.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mUrn.isEmpty())
+    xml.writeAttribute("urn", mUrn );
+  if (mLocallyModified != LocallyModified_Invalid)
+    xml.writeAttribute("locally_modified", locallyModifiedEnumToString(mLocallyModified));
+  if (!mPrefix.isEmpty())
+    xml.writeAttribute("prefix", mPrefix );
+  if (mUservalue != Uservalue_Invalid)
+    xml.writeAttribute("uservalue", uservalueEnumToString(mUservalue));
+  if (mLibraryVersion_set)
+    xml.writeAttribute("library_version", QString::number( mLibraryVersion ) );
+  if (mLibraryLocallyModified != LibraryLocallyModified_Invalid)
+    xml.writeAttribute("library_locally_modified", libraryLocallyModifiedEnumToString(mLibraryLocallyModified));
+  if (mDescription)
+    mDescription->writeElement( xml );
+  if (mGates)
+    mGates->writeElement( xml );
+  if (mDevices)
+    mDevices->writeElement( xml );
+  if (mSpice)
+    mSpice->writeElement( xml );
   xml.writeEndElement();
 }
 
 
-void Devicesets::addDeviceset( const Deviceset &v )
+Devicesets::Devicesets()
+{
+}
+
+Devicesets::~Devicesets()
+{
+}
+
+void Devicesets::addDeviceset( Deviceset* v )
 {
   mDevicesetList.append( v );
 }
@@ -7489,23 +9663,23 @@ Deviceset::List *Devicesets::devicesetList()
   return &mDevicesetList;
 }
 
-Devicesets Devicesets::parseElement( const QDomElement &element, bool *ok )
+Devicesets *Devicesets::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "devicesets" ) {
     qCritical() << "Expected 'devicesets', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Devicesets();
+    return nullptr;
   }
 
-  Devicesets result = Devicesets();
+  Devicesets* result = new Devicesets();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "deviceset" ) {
       bool ok;
-      Deviceset o = Deviceset::parseElement( e, &ok );
-      if ( ok ) result.addDeviceset( o );
+      Deviceset *o = Deviceset::parseElement( e, &ok );
+      if ( ok ) result->addDeviceset( o );
     }
   }
 
@@ -7518,13 +9692,27 @@ void Devicesets::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mDevicesetList.isEmpty() ) {
     xml.writeStartElement( "devicesets" );
-    foreach( Deviceset e, mDevicesetList ) {
-      e.writeElement( xml );
+    foreach( Deviceset* e, mDevicesetList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Library::Library()
+{
+  mDescription = nullptr;
+  mPackages = nullptr;
+  mPackages3d = nullptr;
+  mSymbols = nullptr;
+  mDevicesets = nullptr;
+}
+
+Library::~Library()
+{
+}
 
 void Library::setName( const QString &v )
 {
@@ -7546,83 +9734,98 @@ QString Library::urn() const
   return mUrn;
 }
 
-void Library::setDescription( const Description &v )
+void Library::setDescription( Description *v )
 {
   mDescription = v;
 }
 
 Description *Library::description()
 {
-  return &mDescription;
+  return mDescription;
 }
 
-void Library::setPackages( const Packages &v )
+void Library::setPackages( Packages *v )
 {
   mPackages = v;
 }
 
 Packages *Library::packages()
 {
-  return &mPackages;
+  return mPackages;
 }
 
-void Library::setSymbols( const Symbols &v )
+void Library::setPackages3d( Packages3d *v )
+{
+  mPackages3d = v;
+}
+
+Packages3d *Library::packages3d()
+{
+  return mPackages3d;
+}
+
+void Library::setSymbols( Symbols *v )
 {
   mSymbols = v;
 }
 
 Symbols *Library::symbols()
 {
-  return &mSymbols;
+  return mSymbols;
 }
 
-void Library::setDevicesets( const Devicesets &v )
+void Library::setDevicesets( Devicesets *v )
 {
   mDevicesets = v;
 }
 
 Devicesets *Library::devicesets()
 {
-  return &mDevicesets;
+  return mDevicesets;
 }
 
-Library Library::parseElement( const QDomElement &element, bool *ok )
+Library *Library::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "library" ) {
     qCritical() << "Expected 'library', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Library();
+    return nullptr;
   }
 
-  Library result = Library();
+  Library* result = new Library();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "description" ) {
       bool ok;
-      Description o = Description::parseElement( e, &ok );
-      if ( ok ) result.setDescription( o );
+      Description *o = Description::parseElement( e, &ok );
+      if ( ok ) result->setDescription( o );
     }
     else if ( e.tagName() == "packages" ) {
       bool ok;
-      Packages o = Packages::parseElement( e, &ok );
-      if ( ok ) result.setPackages( o );
+      Packages *o = Packages::parseElement( e, &ok );
+      if ( ok ) result->setPackages( o );
+    }
+    else if ( e.tagName() == "packages3d" ) {
+      bool ok;
+      Packages3d *o = Packages3d::parseElement( e, &ok );
+      if ( ok ) result->setPackages3d( o );
     }
     else if ( e.tagName() == "symbols" ) {
       bool ok;
-      Symbols o = Symbols::parseElement( e, &ok );
-      if ( ok ) result.setSymbols( o );
+      Symbols *o = Symbols::parseElement( e, &ok );
+      if ( ok ) result->setSymbols( o );
     }
     else if ( e.tagName() == "devicesets" ) {
       bool ok;
-      Devicesets o = Devicesets::parseElement( e, &ok );
-      if ( ok ) result.setDevicesets( o );
+      Devicesets *o = Devicesets::parseElement( e, &ok );
+      if ( ok ) result->setDevicesets( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setUrn( element.attribute( "urn" ) );
+  result->setName( element.attribute( "name" ) );
+  result->setUrn( element.attribute( "urn" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -7631,17 +9834,33 @@ Library Library::parseElement( const QDomElement &element, bool *ok )
 void Library::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "library" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("urn", urn() );
-  mDescription.writeElement( xml );
-  mPackages.writeElement( xml );
-  mSymbols.writeElement( xml );
-  mDevicesets.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mUrn.isEmpty())
+    xml.writeAttribute("urn", mUrn );
+  if (mDescription)
+    mDescription->writeElement( xml );
+  if (mPackages)
+    mPackages->writeElement( xml );
+  if (mPackages3d)
+    mPackages3d->writeElement( xml );
+  if (mSymbols)
+    mSymbols->writeElement( xml );
+  if (mDevicesets)
+    mDevicesets->writeElement( xml );
   xml.writeEndElement();
 }
 
 
-void Libraries::addLibrary( const Library &v )
+Libraries::Libraries()
+{
+}
+
+Libraries::~Libraries()
+{
+}
+
+void Libraries::addLibrary( Library* v )
 {
   mLibraryList.append( v );
 }
@@ -7656,23 +9875,23 @@ Library::List *Libraries::libraryList()
   return &mLibraryList;
 }
 
-Libraries Libraries::parseElement( const QDomElement &element, bool *ok )
+Libraries *Libraries::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "libraries" ) {
     qCritical() << "Expected 'libraries', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Libraries();
+    return nullptr;
   }
 
-  Libraries result = Libraries();
+  Libraries* result = new Libraries();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "library" ) {
       bool ok;
-      Library o = Library::parseElement( e, &ok );
-      if ( ok ) result.addLibrary( o );
+      Library *o = Library::parseElement( e, &ok );
+      if ( ok ) result->addLibrary( o );
     }
   }
 
@@ -7685,15 +9904,24 @@ void Libraries::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mLibraryList.isEmpty() ) {
     xml.writeStartElement( "libraries" );
-    foreach( Library e, mLibraryList ) {
-      e.writeElement( xml );
+    foreach( Library* e, mLibraryList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
 
-void Attributes::addAttribute( const Attribute &v )
+Attributes::Attributes()
+{
+}
+
+Attributes::~Attributes()
+{
+}
+
+void Attributes::addAttribute( Attribute* v )
 {
   mAttributeList.append( v );
 }
@@ -7708,23 +9936,23 @@ Attribute::List *Attributes::attributeList()
   return &mAttributeList;
 }
 
-Attributes Attributes::parseElement( const QDomElement &element, bool *ok )
+Attributes *Attributes::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "attributes" ) {
     qCritical() << "Expected 'attributes', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Attributes();
+    return nullptr;
   }
 
-  Attributes result = Attributes();
+  Attributes* result = new Attributes();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "attribute" ) {
       bool ok;
-      Attribute o = Attribute::parseElement( e, &ok );
-      if ( ok ) result.addAttribute( o );
+      Attribute *o = Attribute::parseElement( e, &ok );
+      if ( ok ) result->addAttribute( o );
     }
   }
 
@@ -7737,13 +9965,23 @@ void Attributes::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mAttributeList.isEmpty() ) {
     xml.writeStartElement( "attributes" );
-    foreach( Attribute e, mAttributeList ) {
-      e.writeElement( xml );
+    foreach( Attribute* e, mAttributeList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Variantdef::Variantdef()
+{
+  mCurrent = Current_Invalid;
+}
+
+Variantdef::~Variantdef()
+{
+}
 
 void Variantdef::setName( const QString &v )
 {
@@ -7793,27 +10031,27 @@ QString Variantdef::currentEnumToString( const CurrentEnum & v )
   }
 }
 
-Variantdef Variantdef::parseElement( const QDomElement &element, bool *ok )
+Variantdef *Variantdef::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "variantdef" ) {
     qCritical() << "Expected 'variantdef', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Variantdef();
+    return nullptr;
   }
 
-  Variantdef result = Variantdef();
+  Variantdef* result = new Variantdef();
 
-  result.setName( element.attribute( "name" ) );
+  result->setName( element.attribute( "name" ) );
   if (element.hasAttribute("current"))  {
     CurrentEnum current = currentEnumFromString( element.attribute( "current" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "current" ) << "\" in the \"current\" element";
-      return Variantdef();
+      return nullptr;
     } else {
-      result.setCurrent( current );
+      result->setCurrent( current );
     }
   } else {
-    result.setCurrent(currentEnumFromString("no"));
+    result->setCurrent(Current_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -7822,11 +10060,24 @@ Variantdef Variantdef::parseElement( const QDomElement &element, bool *ok )
 
 void Variantdef::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "variantdef" );
+  xml.writeStartElement( "variantdef" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (mCurrent != Current_Invalid)
+    xml.writeAttribute("current", currentEnumToString(mCurrent));
+  xml.writeEndElement();
 }
 
 
-void Variantdefs::addVariantdef( const Variantdef &v )
+Variantdefs::Variantdefs()
+{
+}
+
+Variantdefs::~Variantdefs()
+{
+}
+
+void Variantdefs::addVariantdef( Variantdef* v )
 {
   mVariantdefList.append( v );
 }
@@ -7841,23 +10092,23 @@ Variantdef::List *Variantdefs::variantdefList()
   return &mVariantdefList;
 }
 
-Variantdefs Variantdefs::parseElement( const QDomElement &element, bool *ok )
+Variantdefs *Variantdefs::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "variantdefs" ) {
     qCritical() << "Expected 'variantdefs', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Variantdefs();
+    return nullptr;
   }
 
-  Variantdefs result = Variantdefs();
+  Variantdefs* result = new Variantdefs();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "variantdef" ) {
       bool ok;
-      Variantdef o = Variantdef::parseElement( e, &ok );
-      if ( ok ) result.addVariantdef( o );
+      Variantdef *o = Variantdef::parseElement( e, &ok );
+      if ( ok ) result->addVariantdef( o );
     }
   }
 
@@ -7870,16 +10121,28 @@ void Variantdefs::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mVariantdefList.isEmpty() ) {
     xml.writeStartElement( "variantdefs" );
-    foreach( Variantdef e, mVariantdefList ) {
-      e.writeElement( xml );
+    foreach( Variantdef* e, mVariantdefList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
 
-void Clearance::setClass( int v )
+Clearance::Clearance()
 {
+  mClass_set = false;
+  mValue_set = false;
+}
+
+Clearance::~Clearance()
+{
+}
+
+void Clearance::setClass( const int v )
+{
+  mClass_set = true;
   mClass = v;
 }
 
@@ -7888,8 +10151,14 @@ int Clearance::class_() const
   return mClass;
 }
 
-void Clearance::setValue( double v )
+bool Clearance::classSet() const
 {
+  return mClass_set;
+}
+
+void Clearance::setValue( const double v )
+{
+  mValue_set = true;
   mValue = v;
 }
 
@@ -7898,18 +10167,25 @@ double Clearance::value() const
   return mValue;
 }
 
-Clearance Clearance::parseElement( const QDomElement &element, bool *ok )
+bool Clearance::valueSet() const
+{
+  return mValue_set;
+}
+
+Clearance *Clearance::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "clearance" ) {
     qCritical() << "Expected 'clearance', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Clearance();
+    return nullptr;
   }
 
-  Clearance result = Clearance();
+  Clearance* result = new Clearance();
 
-  result.setClass( element.attribute( "class" ).toInt() );
-  result.setValue( element.attribute( "value" ).toDouble() );
+  if (element.hasAttribute("class"))
+    result->setClass( element.attribute( "class" ).toInt() );
+  if (element.hasAttribute("value"))
+    result->setValue( element.attribute( "value" ).toDouble() );
 
   if ( ok ) *ok = true;
   return result;
@@ -7917,18 +10193,40 @@ Clearance Clearance::parseElement( const QDomElement &element, bool *ok )
 
 void Clearance::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "clearance" );
+  xml.writeStartElement( "clearance" );
+  if (mClass_set)
+    xml.writeAttribute("class", QString::number( mClass ) );
+  if (mValue_set)
+    xml.writeAttribute("value", QString::number( mValue ) );
+  xml.writeEndElement();
 }
 
 
-void Class::setNumber( int v )
+Class::Class()
 {
+  mNumber_set = false;
+  mWidth_set = false;
+  mDrill_set = false;
+}
+
+Class::~Class()
+{
+}
+
+void Class::setNumber( const int v )
+{
+  mNumber_set = true;
   mNumber = v;
 }
 
 int Class::number() const
 {
   return mNumber;
+}
+
+bool Class::numberSet() const
+{
+  return mNumber_set;
 }
 
 void Class::setName( const QString &v )
@@ -7941,8 +10239,9 @@ QString Class::name() const
   return mName;
 }
 
-void Class::setWidth( double v )
+void Class::setWidth( const double v )
 {
+  mWidth_set = true;
   mWidth = v;
 }
 
@@ -7951,8 +10250,14 @@ double Class::width() const
   return mWidth;
 }
 
-void Class::setDrill( double v )
+bool Class::widthSet() const
 {
+  return mWidth_set;
+}
+
+void Class::setDrill( const double v )
+{
+  mDrill_set = true;
   mDrill = v;
 }
 
@@ -7961,7 +10266,12 @@ double Class::drill() const
   return mDrill;
 }
 
-void Class::addClearance( const Clearance &v )
+bool Class::drillSet() const
+{
+  return mDrill_set;
+}
+
+void Class::addClearance( Clearance* v )
 {
   mClearanceList.append( v );
 }
@@ -7976,30 +10286,33 @@ Clearance::List *Class::clearanceList()
   return &mClearanceList;
 }
 
-Class Class::parseElement( const QDomElement &element, bool *ok )
+Class *Class::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "class" ) {
     qCritical() << "Expected 'class', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Class();
+    return nullptr;
   }
 
-  Class result = Class();
+  Class* result = new Class();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "clearance" ) {
       bool ok;
-      Clearance o = Clearance::parseElement( e, &ok );
-      if ( ok ) result.addClearance( o );
+      Clearance *o = Clearance::parseElement( e, &ok );
+      if ( ok ) result->addClearance( o );
     }
   }
 
-  result.setNumber( element.attribute( "number" ).toInt() );
-  result.setName( element.attribute( "name" ) );
-  result.setWidth( element.attribute( "width" ).toDouble() );
-  result.setDrill( element.attribute( "drill" ).toDouble() );
+  if (element.hasAttribute("number"))
+    result->setNumber( element.attribute( "number" ).toInt() );
+  result->setName( element.attribute( "name" ) );
+  if (element.hasAttribute("width"))
+    result->setWidth( element.attribute( "width" ).toDouble() );
+  if (element.hasAttribute("drill"))
+    result->setDrill( element.attribute( "drill" ).toDouble() );
 
   if ( ok ) *ok = true;
   return result;
@@ -8008,18 +10321,31 @@ Class Class::parseElement( const QDomElement &element, bool *ok )
 void Class::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "class" );
-  xml.writeAttribute("number", QString::number( number() ) );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("width", QString::number( width() ) );
-  xml.writeAttribute("drill", QString::number( drill() ) );
-  foreach( Clearance e, mClearanceList ) {
-    e.writeElement( xml );
+  if (mNumber_set)
+    xml.writeAttribute("number", QString::number( mNumber ) );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (mWidth_set)
+    xml.writeAttribute("width", QString::number( mWidth ) );
+  if (mDrill_set)
+    xml.writeAttribute("drill", QString::number( mDrill ) );
+  foreach( Clearance* e, mClearanceList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
 
-void Classes::addClass( const Class &v )
+Classes::Classes()
+{
+}
+
+Classes::~Classes()
+{
+}
+
+void Classes::addClass( Class* v )
 {
   mClassList.append( v );
 }
@@ -8034,23 +10360,23 @@ Class::List *Classes::classList()
   return &mClassList;
 }
 
-Classes Classes::parseElement( const QDomElement &element, bool *ok )
+Classes *Classes::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "classes" ) {
     qCritical() << "Expected 'classes', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Classes();
+    return nullptr;
   }
 
-  Classes result = Classes();
+  Classes* result = new Classes();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "class" ) {
       bool ok;
-      Class o = Class::parseElement( e, &ok );
-      if ( ok ) result.addClass( o );
+      Class *o = Class::parseElement( e, &ok );
+      if ( ok ) result->addClass( o );
     }
   }
 
@@ -8063,13 +10389,22 @@ void Classes::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mClassList.isEmpty() ) {
     xml.writeStartElement( "classes" );
-    foreach( Class e, mClassList ) {
-      e.writeElement( xml );
+    foreach( Class* e, mClassList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Approved::Approved()
+{
+}
+
+Approved::~Approved()
+{
+}
 
 void Approved::setHash( const QString &v )
 {
@@ -8081,17 +10416,17 @@ QString Approved::hash() const
   return mHash;
 }
 
-Approved Approved::parseElement( const QDomElement &element, bool *ok )
+Approved *Approved::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "approved" ) {
     qCritical() << "Expected 'approved', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Approved();
+    return nullptr;
   }
 
-  Approved result = Approved();
+  Approved* result = new Approved();
 
-  result.setHash( element.attribute( "hash" ) );
+  result->setHash( element.attribute( "hash" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -8099,11 +10434,22 @@ Approved Approved::parseElement( const QDomElement &element, bool *ok )
 
 void Approved::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "approved" );
+  xml.writeStartElement( "approved" );
+  if (!mHash.isEmpty())
+    xml.writeAttribute("hash", mHash );
+  xml.writeEndElement();
 }
 
 
-void Errors::addApproved( const Approved &v )
+Errors::Errors()
+{
+}
+
+Errors::~Errors()
+{
+}
+
+void Errors::addApproved( Approved* v )
 {
   mApprovedList.append( v );
 }
@@ -8118,23 +10464,23 @@ Approved::List *Errors::approvedList()
   return &mApprovedList;
 }
 
-Errors Errors::parseElement( const QDomElement &element, bool *ok )
+Errors *Errors::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "errors" ) {
     qCritical() << "Expected 'errors', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Errors();
+    return nullptr;
   }
 
-  Errors result = Errors();
+  Errors* result = new Errors();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "approved" ) {
       bool ok;
-      Approved o = Approved::parseElement( e, &ok );
-      if ( ok ) result.addApproved( o );
+      Approved *o = Approved::parseElement( e, &ok );
+      if ( ok ) result->addApproved( o );
     }
   }
 
@@ -8147,16 +10493,40 @@ void Errors::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mApprovedList.isEmpty() ) {
     xml.writeStartElement( "errors" );
-    foreach( Approved e, mApprovedList ) {
-      e.writeElement( xml );
+    foreach( Approved* e, mApprovedList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
 
-void Board::setLimitedwidth( double v )
+Board::Board()
 {
+  mLimitedwidth_set = false;
+  mDescription = nullptr;
+  mFusionsync = nullptr;
+  mPlain = nullptr;
+  mLibraries = nullptr;
+  mAttributes = nullptr;
+  mVariantdefs = nullptr;
+  mClasses = nullptr;
+  mDesignrules = nullptr;
+  mAutorouter = nullptr;
+  mElements = nullptr;
+  mSignals = nullptr;
+  mMfgpreviewcolors = nullptr;
+  mErrors = nullptr;
+}
+
+Board::~Board()
+{
+}
+
+void Board::setLimitedwidth( const double v )
+{
+  mLimitedwidth_set = true;
   mLimitedwidth = v;
 }
 
@@ -8165,202 +10535,223 @@ double Board::limitedwidth() const
   return mLimitedwidth;
 }
 
-void Board::setDescription( const Description &v )
+bool Board::limitedwidthSet() const
+{
+  return mLimitedwidth_set;
+}
+
+void Board::setDescription( Description *v )
 {
   mDescription = v;
 }
 
 Description *Board::description()
 {
-  return &mDescription;
+  return mDescription;
 }
 
-void Board::setFusionsync( const Fusionsync &v )
+void Board::setFusionsync( Fusionsync *v )
 {
   mFusionsync = v;
 }
 
 Fusionsync *Board::fusionsync()
 {
-  return &mFusionsync;
+  return mFusionsync;
 }
 
-void Board::setPlain( const Plain &v )
+void Board::setPlain( Plain *v )
 {
   mPlain = v;
 }
 
 Plain *Board::plain()
 {
-  return &mPlain;
+  return mPlain;
 }
 
-void Board::setLibraries( const Libraries &v )
+void Board::setLibraries( Libraries *v )
 {
   mLibraries = v;
 }
 
 Libraries *Board::libraries()
 {
-  return &mLibraries;
+  return mLibraries;
 }
 
-void Board::setAttributes( const Attributes &v )
+void Board::setAttributes( Attributes *v )
 {
   mAttributes = v;
 }
 
 Attributes *Board::attributes()
 {
-  return &mAttributes;
+  return mAttributes;
 }
 
-void Board::setVariantdefs( const Variantdefs &v )
+void Board::setVariantdefs( Variantdefs *v )
 {
   mVariantdefs = v;
 }
 
 Variantdefs *Board::variantdefs()
 {
-  return &mVariantdefs;
+  return mVariantdefs;
 }
 
-void Board::setClasses( const Classes &v )
+void Board::setClasses( Classes *v )
 {
   mClasses = v;
 }
 
 Classes *Board::classes()
 {
-  return &mClasses;
+  return mClasses;
 }
 
-void Board::setDesignrules( const Designrules &v )
+void Board::setDesignrules( Designrules *v )
 {
   mDesignrules = v;
 }
 
 Designrules *Board::designrules()
 {
-  return &mDesignrules;
+  return mDesignrules;
 }
 
-void Board::setAutorouter( const Autorouter &v )
+void Board::setAutorouter( Autorouter *v )
 {
   mAutorouter = v;
 }
 
 Autorouter *Board::autorouter()
 {
-  return &mAutorouter;
+  return mAutorouter;
 }
 
-void Board::setElements( const Elements &v )
+void Board::setElements( Elements *v )
 {
   mElements = v;
 }
 
 Elements *Board::elements()
 {
-  return &mElements;
+  return mElements;
 }
 
-void Board::setSignals( const Signals &v )
+void Board::setSignals( Signals *v )
 {
   mSignals = v;
 }
 
 Signals *Board::signals_()
 {
-  return &mSignals;
+  return mSignals;
 }
 
-void Board::setErrors( const Errors &v )
+void Board::setMfgpreviewcolors( Mfgpreviewcolors *v )
+{
+  mMfgpreviewcolors = v;
+}
+
+Mfgpreviewcolors *Board::mfgpreviewcolors()
+{
+  return mMfgpreviewcolors;
+}
+
+void Board::setErrors( Errors *v )
 {
   mErrors = v;
 }
 
 Errors *Board::errors()
 {
-  return &mErrors;
+  return mErrors;
 }
 
-Board Board::parseElement( const QDomElement &element, bool *ok )
+Board *Board::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "board" ) {
     qCritical() << "Expected 'board', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Board();
+    return nullptr;
   }
 
-  Board result = Board();
+  Board* result = new Board();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "description" ) {
       bool ok;
-      Description o = Description::parseElement( e, &ok );
-      if ( ok ) result.setDescription( o );
+      Description *o = Description::parseElement( e, &ok );
+      if ( ok ) result->setDescription( o );
     }
     else if ( e.tagName() == "fusionsync" ) {
       bool ok;
-      Fusionsync o = Fusionsync::parseElement( e, &ok );
-      if ( ok ) result.setFusionsync( o );
+      Fusionsync *o = Fusionsync::parseElement( e, &ok );
+      if ( ok ) result->setFusionsync( o );
     }
     else if ( e.tagName() == "plain" ) {
       bool ok;
-      Plain o = Plain::parseElement( e, &ok );
-      if ( ok ) result.setPlain( o );
+      Plain *o = Plain::parseElement( e, &ok );
+      if ( ok ) result->setPlain( o );
     }
     else if ( e.tagName() == "libraries" ) {
       bool ok;
-      Libraries o = Libraries::parseElement( e, &ok );
-      if ( ok ) result.setLibraries( o );
+      Libraries *o = Libraries::parseElement( e, &ok );
+      if ( ok ) result->setLibraries( o );
     }
     else if ( e.tagName() == "attributes" ) {
       bool ok;
-      Attributes o = Attributes::parseElement( e, &ok );
-      if ( ok ) result.setAttributes( o );
+      Attributes *o = Attributes::parseElement( e, &ok );
+      if ( ok ) result->setAttributes( o );
     }
     else if ( e.tagName() == "variantdefs" ) {
       bool ok;
-      Variantdefs o = Variantdefs::parseElement( e, &ok );
-      if ( ok ) result.setVariantdefs( o );
+      Variantdefs *o = Variantdefs::parseElement( e, &ok );
+      if ( ok ) result->setVariantdefs( o );
     }
     else if ( e.tagName() == "classes" ) {
       bool ok;
-      Classes o = Classes::parseElement( e, &ok );
-      if ( ok ) result.setClasses( o );
+      Classes *o = Classes::parseElement( e, &ok );
+      if ( ok ) result->setClasses( o );
     }
     else if ( e.tagName() == "designrules" ) {
       bool ok;
-      Designrules o = Designrules::parseElement( e, &ok );
-      if ( ok ) result.setDesignrules( o );
+      Designrules *o = Designrules::parseElement( e, &ok );
+      if ( ok ) result->setDesignrules( o );
     }
     else if ( e.tagName() == "autorouter" ) {
       bool ok;
-      Autorouter o = Autorouter::parseElement( e, &ok );
-      if ( ok ) result.setAutorouter( o );
+      Autorouter *o = Autorouter::parseElement( e, &ok );
+      if ( ok ) result->setAutorouter( o );
     }
     else if ( e.tagName() == "elements" ) {
       bool ok;
-      Elements o = Elements::parseElement( e, &ok );
-      if ( ok ) result.setElements( o );
+      Elements *o = Elements::parseElement( e, &ok );
+      if ( ok ) result->setElements( o );
     }
     else if ( e.tagName() == "signals" ) {
       bool ok;
-      Signals o = Signals::parseElement( e, &ok );
-      if ( ok ) result.setSignals( o );
+      Signals *o = Signals::parseElement( e, &ok );
+      if ( ok ) result->setSignals( o );
+    }
+    else if ( e.tagName() == "mfgpreviewcolors" ) {
+      bool ok;
+      Mfgpreviewcolors *o = Mfgpreviewcolors::parseElement( e, &ok );
+      if ( ok ) result->setMfgpreviewcolors( o );
     }
     else if ( e.tagName() == "errors" ) {
       bool ok;
-      Errors o = Errors::parseElement( e, &ok );
-      if ( ok ) result.setErrors( o );
+      Errors *o = Errors::parseElement( e, &ok );
+      if ( ok ) result->setErrors( o );
     }
   }
 
-  result.setLimitedwidth( element.attribute( "limitedwidth" ).toDouble() );
+  if (element.hasAttribute("limitedwidth"))
+    result->setLimitedwidth( element.attribute( "limitedwidth" ).toDouble() );
 
   if ( ok ) *ok = true;
   return result;
@@ -8369,22 +10760,45 @@ Board Board::parseElement( const QDomElement &element, bool *ok )
 void Board::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "board" );
-  xml.writeAttribute("limitedwidth", QString::number( limitedwidth() ) );
-  mDescription.writeElement( xml );
-  mFusionsync.writeElement( xml );
-  mPlain.writeElement( xml );
-  mLibraries.writeElement( xml );
-  mAttributes.writeElement( xml );
-  mVariantdefs.writeElement( xml );
-  mClasses.writeElement( xml );
-  mDesignrules.writeElement( xml );
-  mAutorouter.writeElement( xml );
-  mElements.writeElement( xml );
-  mSignals.writeElement( xml );
-  mErrors.writeElement( xml );
+  if (mLimitedwidth_set)
+    xml.writeAttribute("limitedwidth", QString::number( mLimitedwidth ) );
+  if (mDescription)
+    mDescription->writeElement( xml );
+  if (mFusionsync)
+    mFusionsync->writeElement( xml );
+  if (mPlain)
+    mPlain->writeElement( xml );
+  if (mLibraries)
+    mLibraries->writeElement( xml );
+  if (mAttributes)
+    mAttributes->writeElement( xml );
+  if (mVariantdefs)
+    mVariantdefs->writeElement( xml );
+  if (mClasses)
+    mClasses->writeElement( xml );
+  if (mDesignrules)
+    mDesignrules->writeElement( xml );
+  if (mAutorouter)
+    mAutorouter->writeElement( xml );
+  if (mElements)
+    mElements->writeElement( xml );
+  if (mSignals)
+    mSignals->writeElement( xml );
+  if (mMfgpreviewcolors)
+    mMfgpreviewcolors->writeElement( xml );
+  if (mErrors)
+    mErrors->writeElement( xml );
   xml.writeEndElement();
 }
 
+
+Pinref::Pinref()
+{
+}
+
+Pinref::~Pinref()
+{
+}
 
 void Pinref::setPart( const QString &v )
 {
@@ -8416,19 +10830,19 @@ QString Pinref::pin() const
   return mPin;
 }
 
-Pinref Pinref::parseElement( const QDomElement &element, bool *ok )
+Pinref *Pinref::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "pinref" ) {
     qCritical() << "Expected 'pinref', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Pinref();
+    return nullptr;
   }
 
-  Pinref result = Pinref();
+  Pinref* result = new Pinref();
 
-  result.setPart( element.attribute( "part" ) );
-  result.setGate( element.attribute( "gate" ) );
-  result.setPin( element.attribute( "pin" ) );
+  result->setPart( element.attribute( "part" ) );
+  result->setGate( element.attribute( "gate" ) );
+  result->setPin( element.attribute( "pin" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -8436,9 +10850,24 @@ Pinref Pinref::parseElement( const QDomElement &element, bool *ok )
 
 void Pinref::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "pinref" );
+  xml.writeStartElement( "pinref" );
+  if (!mPart.isEmpty())
+    xml.writeAttribute("part", mPart );
+  if (!mGate.isEmpty())
+    xml.writeAttribute("gate", mGate );
+  if (!mPin.isEmpty())
+    xml.writeAttribute("pin", mPin );
+  xml.writeEndElement();
 }
 
+
+Portref::Portref()
+{
+}
+
+Portref::~Portref()
+{
+}
 
 void Portref::setModuleinst( const QString &v )
 {
@@ -8460,18 +10889,18 @@ QString Portref::port() const
   return mPort;
 }
 
-Portref Portref::parseElement( const QDomElement &element, bool *ok )
+Portref *Portref::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "portref" ) {
     qCritical() << "Expected 'portref', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Portref();
+    return nullptr;
   }
 
-  Portref result = Portref();
+  Portref* result = new Portref();
 
-  result.setModuleinst( element.attribute( "moduleinst" ) );
-  result.setPort( element.attribute( "port" ) );
+  result->setModuleinst( element.attribute( "moduleinst" ) );
+  result->setPort( element.attribute( "port" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -8479,12 +10908,28 @@ Portref Portref::parseElement( const QDomElement &element, bool *ok )
 
 void Portref::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "portref" );
+  xml.writeStartElement( "portref" );
+  if (!mModuleinst.isEmpty())
+    xml.writeAttribute("moduleinst", mModuleinst );
+  if (!mPort.isEmpty())
+    xml.writeAttribute("port", mPort );
+  xml.writeEndElement();
 }
 
 
-void Junction::setX( double v )
+Junction::Junction()
 {
+  mX_set = false;
+  mY_set = false;
+}
+
+Junction::~Junction()
+{
+}
+
+void Junction::setX( const double v )
+{
+  mX_set = true;
   mX = v;
 }
 
@@ -8493,8 +10938,14 @@ double Junction::x() const
   return mX;
 }
 
-void Junction::setY( double v )
+bool Junction::xSet() const
 {
+  return mX_set;
+}
+
+void Junction::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -8503,18 +10954,25 @@ double Junction::y() const
   return mY;
 }
 
-Junction Junction::parseElement( const QDomElement &element, bool *ok )
+bool Junction::ySet() const
+{
+  return mY_set;
+}
+
+Junction *Junction::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "junction" ) {
     qCritical() << "Expected 'junction', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Junction();
+    return nullptr;
   }
 
-  Junction result = Junction();
+  Junction* result = new Junction();
 
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
 
   if ( ok ) *ok = true;
   return result;
@@ -8522,12 +10980,34 @@ Junction Junction::parseElement( const QDomElement &element, bool *ok )
 
 void Junction::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "junction" );
+  xml.writeStartElement( "junction" );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  xml.writeEndElement();
 }
 
 
-void Label::setX( double v )
+Label::Label()
 {
+  mX_set = false;
+  mY_set = false;
+  mSize_set = false;
+  mLayer_set = false;
+  mFont = Font_Invalid;
+  mRatio_set = false;
+  mXref = Xref_Invalid;
+  mAlign = Align_Invalid;
+}
+
+Label::~Label()
+{
+}
+
+void Label::setX( const double v )
+{
+  mX_set = true;
   mX = v;
 }
 
@@ -8536,8 +11016,14 @@ double Label::x() const
   return mX;
 }
 
-void Label::setY( double v )
+bool Label::xSet() const
 {
+  return mX_set;
+}
+
+void Label::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -8546,8 +11032,14 @@ double Label::y() const
   return mY;
 }
 
-void Label::setSize( double v )
+bool Label::ySet() const
 {
+  return mY_set;
+}
+
+void Label::setSize( const double v )
+{
+  mSize_set = true;
   mSize = v;
 }
 
@@ -8556,14 +11048,25 @@ double Label::size() const
   return mSize;
 }
 
-void Label::setLayer( int v )
+bool Label::sizeSet() const
 {
+  return mSize_set;
+}
+
+void Label::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
 int Label::layer() const
 {
   return mLayer;
+}
+
+bool Label::layerSet() const
+{
+  return mLayer_set;
 }
 
 void Label::setFont( const FontEnum &v )
@@ -8576,14 +11079,20 @@ Label::FontEnum Label::font() const
   return mFont;
 }
 
-void Label::setRatio( int v )
+void Label::setRatio( const int v )
 {
+  mRatio_set = true;
   mRatio = v;
 }
 
 int Label::ratio() const
 {
   return mRatio;
+}
+
+bool Label::ratioSet() const
+{
+  return mRatio_set;
 }
 
 void Label::setRot( const QString &v )
@@ -8724,54 +11233,59 @@ QString Label::alignEnumToString( const AlignEnum & v )
   }
 }
 
-Label Label::parseElement( const QDomElement &element, bool *ok )
+Label *Label::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "label" ) {
     qCritical() << "Expected 'label', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Label();
+    return nullptr;
   }
 
-  Label result = Label();
+  Label* result = new Label();
 
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setSize( element.attribute( "size" ).toDouble() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("size"))
+    result->setSize( element.attribute( "size" ).toDouble() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("font"))  {
     FontEnum font = fontEnumFromString( element.attribute( "font" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "font" ) << "\" in the \"font\" element";
-      return Label();
+      return nullptr;
     } else {
-      result.setFont( font );
+      result->setFont( font );
     }
   } else {
-    result.setFont(fontEnumFromString("proportional"));
+    result->setFont(Font_Invalid);
   }
-  result.setRatio( element.attribute( "ratio" ).toInt() );
-  result.setRot( element.attribute( "rot" ) );
+  if (element.hasAttribute("ratio"))
+    result->setRatio( element.attribute( "ratio" ).toInt() );
+  result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("xref"))  {
     XrefEnum xref = xrefEnumFromString( element.attribute( "xref" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "xref" ) << "\" in the \"xref\" element";
-      return Label();
+      return nullptr;
     } else {
-      result.setXref( xref );
+      result->setXref( xref );
     }
   } else {
-    result.setXref(xrefEnumFromString("no"));
+    result->setXref(Xref_Invalid);
   }
   if (element.hasAttribute("align"))  {
     AlignEnum align = alignEnumFromString( element.attribute( "align" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "align" ) << "\" in the \"align\" element";
-      return Label();
+      return nullptr;
     } else {
-      result.setAlign( align );
+      result->setAlign( align );
     }
   } else {
-    result.setAlign(alignEnumFromString("bottom-left"));
+    result->setAlign(Align_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -8780,12 +11294,47 @@ Label Label::parseElement( const QDomElement &element, bool *ok )
 
 void Label::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "label" );
+  xml.writeStartElement( "label" );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mSize_set)
+    xml.writeAttribute("size", QString::number( mSize ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  if (mFont != Font_Invalid)
+    xml.writeAttribute("font", fontEnumToString(mFont));
+  if (mRatio_set)
+    xml.writeAttribute("ratio", QString::number( mRatio ) );
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  if (mXref != Xref_Invalid)
+    xml.writeAttribute("xref", xrefEnumToString(mXref));
+  if (mAlign != Align_Invalid)
+    xml.writeAttribute("align", alignEnumToString(mAlign));
+  xml.writeEndElement();
 }
 
 
-void Probe::setX( double v )
+Probe::Probe()
 {
+  mX_set = false;
+  mY_set = false;
+  mSize_set = false;
+  mLayer_set = false;
+  mFont = Font_Invalid;
+  mRatio_set = false;
+  mXref = Xref_Invalid;
+}
+
+Probe::~Probe()
+{
+}
+
+void Probe::setX( const double v )
+{
+  mX_set = true;
   mX = v;
 }
 
@@ -8794,8 +11343,14 @@ double Probe::x() const
   return mX;
 }
 
-void Probe::setY( double v )
+bool Probe::xSet() const
 {
+  return mX_set;
+}
+
+void Probe::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -8804,8 +11359,14 @@ double Probe::y() const
   return mY;
 }
 
-void Probe::setSize( double v )
+bool Probe::ySet() const
 {
+  return mY_set;
+}
+
+void Probe::setSize( const double v )
+{
+  mSize_set = true;
   mSize = v;
 }
 
@@ -8814,14 +11375,25 @@ double Probe::size() const
   return mSize;
 }
 
-void Probe::setLayer( int v )
+bool Probe::sizeSet() const
 {
+  return mSize_set;
+}
+
+void Probe::setLayer( const int v )
+{
+  mLayer_set = true;
   mLayer = v;
 }
 
 int Probe::layer() const
 {
   return mLayer;
+}
+
+bool Probe::layerSet() const
+{
+  return mLayer_set;
 }
 
 void Probe::setFont( const FontEnum &v )
@@ -8834,14 +11406,20 @@ Probe::FontEnum Probe::font() const
   return mFont;
 }
 
-void Probe::setRatio( int v )
+void Probe::setRatio( const int v )
 {
+  mRatio_set = true;
   mRatio = v;
 }
 
 int Probe::ratio() const
 {
   return mRatio;
+}
+
+bool Probe::ratioSet() const
+{
+  return mRatio_set;
 }
 
 void Probe::setRot( const QString &v )
@@ -8923,43 +11501,48 @@ QString Probe::xrefEnumToString( const XrefEnum & v )
   }
 }
 
-Probe Probe::parseElement( const QDomElement &element, bool *ok )
+Probe *Probe::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "probe" ) {
     qCritical() << "Expected 'probe', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Probe();
+    return nullptr;
   }
 
-  Probe result = Probe();
+  Probe* result = new Probe();
 
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setSize( element.attribute( "size" ).toDouble() );
-  result.setLayer( element.attribute( "layer" ).toInt() );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("size"))
+    result->setSize( element.attribute( "size" ).toDouble() );
+  if (element.hasAttribute("layer"))
+    result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("font"))  {
     FontEnum font = fontEnumFromString( element.attribute( "font" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "font" ) << "\" in the \"font\" element";
-      return Probe();
+      return nullptr;
     } else {
-      result.setFont( font );
+      result->setFont( font );
     }
   } else {
-    result.setFont(fontEnumFromString("proportional"));
+    result->setFont(Font_Invalid);
   }
-  result.setRatio( element.attribute( "ratio" ).toInt() );
-  result.setRot( element.attribute( "rot" ) );
+  if (element.hasAttribute("ratio"))
+    result->setRatio( element.attribute( "ratio" ).toInt() );
+  result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("xref"))  {
     XrefEnum xref = xrefEnumFromString( element.attribute( "xref" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "xref" ) << "\" in the \"xref\" element";
-      return Probe();
+      return nullptr;
     } else {
-      result.setXref( xref );
+      result->setXref( xref );
     }
   } else {
-    result.setXref(xrefEnumFromString("no"));
+    result->setXref(Xref_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -8968,11 +11551,36 @@ Probe Probe::parseElement( const QDomElement &element, bool *ok )
 
 void Probe::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "probe" );
+  xml.writeStartElement( "probe" );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mSize_set)
+    xml.writeAttribute("size", QString::number( mSize ) );
+  if (mLayer_set)
+    xml.writeAttribute("layer", QString::number( mLayer ) );
+  if (mFont != Font_Invalid)
+    xml.writeAttribute("font", fontEnumToString(mFont));
+  if (mRatio_set)
+    xml.writeAttribute("ratio", QString::number( mRatio ) );
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  if (mXref != Xref_Invalid)
+    xml.writeAttribute("xref", xrefEnumToString(mXref));
+  xml.writeEndElement();
 }
 
 
-void Segment::addPinref( const Pinref &v )
+Segment::Segment()
+{
+}
+
+Segment::~Segment()
+{
+}
+
+void Segment::addPinref( Pinref* v )
 {
   mPinrefList.append( v );
 }
@@ -8987,7 +11595,7 @@ Pinref::List *Segment::pinrefList()
   return &mPinrefList;
 }
 
-void Segment::addPortref( const Portref &v )
+void Segment::addPortref( Portref* v )
 {
   mPortrefList.append( v );
 }
@@ -9002,7 +11610,7 @@ Portref::List *Segment::portrefList()
   return &mPortrefList;
 }
 
-void Segment::addWire( const Wire &v )
+void Segment::addWire( Wire* v )
 {
   mWireList.append( v );
 }
@@ -9017,7 +11625,7 @@ Wire::List *Segment::wireList()
   return &mWireList;
 }
 
-void Segment::addJunction( const Junction &v )
+void Segment::addJunction( Junction* v )
 {
   mJunctionList.append( v );
 }
@@ -9032,7 +11640,7 @@ Junction::List *Segment::junctionList()
   return &mJunctionList;
 }
 
-void Segment::addLabel( const Label &v )
+void Segment::addLabel( Label* v )
 {
   mLabelList.append( v );
 }
@@ -9047,7 +11655,7 @@ Label::List *Segment::labelList()
   return &mLabelList;
 }
 
-void Segment::addProbe( const Probe &v )
+void Segment::addProbe( Probe* v )
 {
   mProbeList.append( v );
 }
@@ -9062,48 +11670,48 @@ Probe::List *Segment::probeList()
   return &mProbeList;
 }
 
-Segment Segment::parseElement( const QDomElement &element, bool *ok )
+Segment *Segment::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "segment" ) {
     qCritical() << "Expected 'segment', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Segment();
+    return nullptr;
   }
 
-  Segment result = Segment();
+  Segment* result = new Segment();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "pinref" ) {
       bool ok;
-      Pinref o = Pinref::parseElement( e, &ok );
-      if ( ok ) result.addPinref( o );
+      Pinref *o = Pinref::parseElement( e, &ok );
+      if ( ok ) result->addPinref( o );
     }
     else if ( e.tagName() == "portref" ) {
       bool ok;
-      Portref o = Portref::parseElement( e, &ok );
-      if ( ok ) result.addPortref( o );
+      Portref *o = Portref::parseElement( e, &ok );
+      if ( ok ) result->addPortref( o );
     }
     else if ( e.tagName() == "wire" ) {
       bool ok;
-      Wire o = Wire::parseElement( e, &ok );
-      if ( ok ) result.addWire( o );
+      Wire *o = Wire::parseElement( e, &ok );
+      if ( ok ) result->addWire( o );
     }
     else if ( e.tagName() == "junction" ) {
       bool ok;
-      Junction o = Junction::parseElement( e, &ok );
-      if ( ok ) result.addJunction( o );
+      Junction *o = Junction::parseElement( e, &ok );
+      if ( ok ) result->addJunction( o );
     }
     else if ( e.tagName() == "label" ) {
       bool ok;
-      Label o = Label::parseElement( e, &ok );
-      if ( ok ) result.addLabel( o );
+      Label *o = Label::parseElement( e, &ok );
+      if ( ok ) result->addLabel( o );
     }
     else if ( e.tagName() == "probe" ) {
       bool ok;
-      Probe o = Probe::parseElement( e, &ok );
-      if ( ok ) result.addProbe( o );
+      Probe *o = Probe::parseElement( e, &ok );
+      if ( ok ) result->addProbe( o );
     }
   }
 
@@ -9116,28 +11724,43 @@ void Segment::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mPinrefList.isEmpty() || !mPortrefList.isEmpty() || !mWireList.isEmpty() || !mJunctionList.isEmpty() || !mLabelList.isEmpty() || !mProbeList.isEmpty() ) {
     xml.writeStartElement( "segment" );
-    foreach( Pinref e, mPinrefList ) {
-      e.writeElement( xml );
+    foreach( Pinref* e, mPinrefList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Portref e, mPortrefList ) {
-      e.writeElement( xml );
+    foreach( Portref* e, mPortrefList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Wire e, mWireList ) {
-      e.writeElement( xml );
+    foreach( Wire* e, mWireList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Junction e, mJunctionList ) {
-      e.writeElement( xml );
+    foreach( Junction* e, mJunctionList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Label e, mLabelList ) {
-      e.writeElement( xml );
+    foreach( Label* e, mLabelList ) {
+      if (e)
+        e->writeElement( xml );
     }
-    foreach( Probe e, mProbeList ) {
-      e.writeElement( xml );
+    foreach( Probe* e, mProbeList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Net::Net()
+{
+  mClass_set = false;
+}
+
+Net::~Net()
+{
+}
 
 void Net::setName( const QString &v )
 {
@@ -9149,8 +11772,9 @@ QString Net::name() const
   return mName;
 }
 
-void Net::setClass( int v )
+void Net::setClass( const int v )
 {
+  mClass_set = true;
   mClass = v;
 }
 
@@ -9159,7 +11783,12 @@ int Net::class_() const
   return mClass;
 }
 
-void Net::addSegment( const Segment &v )
+bool Net::classSet() const
+{
+  return mClass_set;
+}
+
+void Net::addSegment( Segment* v )
 {
   mSegmentList.append( v );
 }
@@ -9174,28 +11803,29 @@ Segment::List *Net::segmentList()
   return &mSegmentList;
 }
 
-Net Net::parseElement( const QDomElement &element, bool *ok )
+Net *Net::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "net" ) {
     qCritical() << "Expected 'net', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Net();
+    return nullptr;
   }
 
-  Net result = Net();
+  Net* result = new Net();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "segment" ) {
       bool ok;
-      Segment o = Segment::parseElement( e, &ok );
-      if ( ok ) result.addSegment( o );
+      Segment *o = Segment::parseElement( e, &ok );
+      if ( ok ) result->addSegment( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setClass( element.attribute( "class" ).toInt() );
+  result->setName( element.attribute( "name" ) );
+  if (element.hasAttribute("class"))
+    result->setClass( element.attribute( "class" ).toInt() );
 
   if ( ok ) *ok = true;
   return result;
@@ -9204,16 +11834,27 @@ Net Net::parseElement( const QDomElement &element, bool *ok )
 void Net::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "net" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("class", QString::number( class_() ) );
-  foreach( Segment e, mSegmentList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (mClass_set)
+    xml.writeAttribute("class", QString::number( mClass ) );
+  foreach( Segment* e, mSegmentList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
 
-void Nets::addNet( const Net &v )
+Nets::Nets()
+{
+}
+
+Nets::~Nets()
+{
+}
+
+void Nets::addNet( Net* v )
 {
   mNetList.append( v );
 }
@@ -9228,23 +11869,23 @@ Net::List *Nets::netList()
   return &mNetList;
 }
 
-Nets Nets::parseElement( const QDomElement &element, bool *ok )
+Nets *Nets::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "nets" ) {
     qCritical() << "Expected 'nets', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Nets();
+    return nullptr;
   }
 
-  Nets result = Nets();
+  Nets* result = new Nets();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "net" ) {
       bool ok;
-      Net o = Net::parseElement( e, &ok );
-      if ( ok ) result.addNet( o );
+      Net *o = Net::parseElement( e, &ok );
+      if ( ok ) result->addNet( o );
     }
   }
 
@@ -9257,13 +11898,22 @@ void Nets::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mNetList.isEmpty() ) {
     xml.writeStartElement( "nets" );
-    foreach( Net e, mNetList ) {
-      e.writeElement( xml );
+    foreach( Net* e, mNetList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Bus::Bus()
+{
+}
+
+Bus::~Bus()
+{
+}
 
 void Bus::setName( const QString &v )
 {
@@ -9275,7 +11925,7 @@ QString Bus::name() const
   return mName;
 }
 
-void Bus::addSegment( const Segment &v )
+void Bus::addSegment( Segment* v )
 {
   mSegmentList.append( v );
 }
@@ -9290,27 +11940,27 @@ Segment::List *Bus::segmentList()
   return &mSegmentList;
 }
 
-Bus Bus::parseElement( const QDomElement &element, bool *ok )
+Bus *Bus::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "bus" ) {
     qCritical() << "Expected 'bus', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Bus();
+    return nullptr;
   }
 
-  Bus result = Bus();
+  Bus* result = new Bus();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "segment" ) {
       bool ok;
-      Segment o = Segment::parseElement( e, &ok );
-      if ( ok ) result.addSegment( o );
+      Segment *o = Segment::parseElement( e, &ok );
+      if ( ok ) result->addSegment( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
+  result->setName( element.attribute( "name" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -9319,15 +11969,25 @@ Bus Bus::parseElement( const QDomElement &element, bool *ok )
 void Bus::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "bus" );
-  xml.writeAttribute("name", name() );
-  foreach( Segment e, mSegmentList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  foreach( Segment* e, mSegmentList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
 
-void Busses::addBus( const Bus &v )
+Busses::Busses()
+{
+}
+
+Busses::~Busses()
+{
+}
+
+void Busses::addBus( Bus* v )
 {
   mBusList.append( v );
 }
@@ -9342,23 +12002,23 @@ Bus::List *Busses::busList()
   return &mBusList;
 }
 
-Busses Busses::parseElement( const QDomElement &element, bool *ok )
+Busses *Busses::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "busses" ) {
     qCritical() << "Expected 'busses', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Busses();
+    return nullptr;
   }
 
-  Busses result = Busses();
+  Busses* result = new Busses();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "bus" ) {
       bool ok;
-      Bus o = Bus::parseElement( e, &ok );
-      if ( ok ) result.addBus( o );
+      Bus *o = Bus::parseElement( e, &ok );
+      if ( ok ) result->addBus( o );
     }
   }
 
@@ -9371,13 +12031,25 @@ void Busses::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mBusList.isEmpty() ) {
     xml.writeStartElement( "busses" );
-    foreach( Bus e, mBusList ) {
-      e.writeElement( xml );
+    foreach( Bus* e, mBusList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Instance::Instance()
+{
+  mX_set = false;
+  mY_set = false;
+  mSmashed = Smashed_Invalid;
+}
+
+Instance::~Instance()
+{
+}
 
 void Instance::setPart( const QString &v )
 {
@@ -9399,8 +12071,9 @@ QString Instance::gate() const
   return mGate;
 }
 
-void Instance::setX( double v )
+void Instance::setX( const double v )
 {
+  mX_set = true;
   mX = v;
 }
 
@@ -9409,14 +12082,25 @@ double Instance::x() const
   return mX;
 }
 
-void Instance::setY( double v )
+bool Instance::xSet() const
 {
+  return mX_set;
+}
+
+void Instance::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
 double Instance::y() const
 {
   return mY;
+}
+
+bool Instance::ySet() const
+{
+  return mY_set;
 }
 
 void Instance::setSmashed( const SmashedEnum &v )
@@ -9439,7 +12123,7 @@ QString Instance::rot() const
   return mRot;
 }
 
-void Instance::addAttribute( const Attribute &v )
+void Instance::addAttribute( Attribute* v )
 {
   mAttributeList.append( v );
 }
@@ -9482,42 +12166,44 @@ QString Instance::smashedEnumToString( const SmashedEnum & v )
   }
 }
 
-Instance Instance::parseElement( const QDomElement &element, bool *ok )
+Instance *Instance::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "instance" ) {
     qCritical() << "Expected 'instance', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Instance();
+    return nullptr;
   }
 
-  Instance result = Instance();
+  Instance* result = new Instance();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "attribute" ) {
       bool ok;
-      Attribute o = Attribute::parseElement( e, &ok );
-      if ( ok ) result.addAttribute( o );
+      Attribute *o = Attribute::parseElement( e, &ok );
+      if ( ok ) result->addAttribute( o );
     }
   }
 
-  result.setPart( element.attribute( "part" ) );
-  result.setGate( element.attribute( "gate" ) );
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
+  result->setPart( element.attribute( "part" ) );
+  result->setGate( element.attribute( "gate" ) );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
   if (element.hasAttribute("smashed"))  {
     SmashedEnum smashed = smashedEnumFromString( element.attribute( "smashed" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "smashed" ) << "\" in the \"smashed\" element";
-      return Instance();
+      return nullptr;
     } else {
-      result.setSmashed( smashed );
+      result->setSmashed( smashed );
     }
   } else {
-    result.setSmashed(smashedEnumFromString("no"));
+    result->setSmashed(Smashed_Invalid);
   }
-  result.setRot( element.attribute( "rot" ) );
+  result->setRot( element.attribute( "rot" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -9526,20 +12212,35 @@ Instance Instance::parseElement( const QDomElement &element, bool *ok )
 void Instance::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "instance" );
-  xml.writeAttribute("part", part() );
-  xml.writeAttribute("gate", gate() );
-  xml.writeAttribute("x", QString::number( x() ) );
-  xml.writeAttribute("y", QString::number( y() ) );
-  xml.writeAttribute("smashed", smashedEnumToString( smashed() ));
-  xml.writeAttribute("rot", rot() );
-  foreach( Attribute e, mAttributeList ) {
-    e.writeElement( xml );
+  if (!mPart.isEmpty())
+    xml.writeAttribute("part", mPart );
+  if (!mGate.isEmpty())
+    xml.writeAttribute("gate", mGate );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mSmashed != Smashed_Invalid)
+    xml.writeAttribute("smashed", smashedEnumToString(mSmashed));
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  foreach( Attribute* e, mAttributeList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
 
-void Instances::addInstance( const Instance &v )
+Instances::Instances()
+{
+}
+
+Instances::~Instances()
+{
+}
+
+void Instances::addInstance( Instance* v )
 {
   mInstanceList.append( v );
 }
@@ -9554,23 +12255,23 @@ Instance::List *Instances::instanceList()
   return &mInstanceList;
 }
 
-Instances Instances::parseElement( const QDomElement &element, bool *ok )
+Instances *Instances::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "instances" ) {
     qCritical() << "Expected 'instances', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Instances();
+    return nullptr;
   }
 
-  Instances result = Instances();
+  Instances* result = new Instances();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "instance" ) {
       bool ok;
-      Instance o = Instance::parseElement( e, &ok );
-      if ( ok ) result.addInstance( o );
+      Instance *o = Instance::parseElement( e, &ok );
+      if ( ok ) result->addInstance( o );
     }
   }
 
@@ -9583,13 +12284,26 @@ void Instances::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mInstanceList.isEmpty() ) {
     xml.writeStartElement( "instances" );
-    foreach( Instance e, mInstanceList ) {
-      e.writeElement( xml );
+    foreach( Instance* e, mInstanceList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Moduleinst::Moduleinst()
+{
+  mX_set = false;
+  mY_set = false;
+  mOffset_set = false;
+  mSmashed = Smashed_Invalid;
+}
+
+Moduleinst::~Moduleinst()
+{
+}
 
 void Moduleinst::setName( const QString &v )
 {
@@ -9621,8 +12335,9 @@ QString Moduleinst::modulevariant() const
   return mModulevariant;
 }
 
-void Moduleinst::setX( double v )
+void Moduleinst::setX( const double v )
 {
+  mX_set = true;
   mX = v;
 }
 
@@ -9631,8 +12346,14 @@ double Moduleinst::x() const
   return mX;
 }
 
-void Moduleinst::setY( double v )
+bool Moduleinst::xSet() const
 {
+  return mX_set;
+}
+
+void Moduleinst::setY( const double v )
+{
+  mY_set = true;
   mY = v;
 }
 
@@ -9641,14 +12362,25 @@ double Moduleinst::y() const
   return mY;
 }
 
-void Moduleinst::setOffset( int v )
+bool Moduleinst::ySet() const
 {
+  return mY_set;
+}
+
+void Moduleinst::setOffset( const int v )
+{
+  mOffset_set = true;
   mOffset = v;
 }
 
 int Moduleinst::offset() const
 {
   return mOffset;
+}
+
+bool Moduleinst::offsetSet() const
+{
+  return mOffset_set;
 }
 
 void Moduleinst::setSmashed( const SmashedEnum &v )
@@ -9671,7 +12403,7 @@ QString Moduleinst::rot() const
   return mRot;
 }
 
-void Moduleinst::addAttribute( const Attribute &v )
+void Moduleinst::addAttribute( Attribute* v )
 {
   mAttributeList.append( v );
 }
@@ -9714,44 +12446,47 @@ QString Moduleinst::smashedEnumToString( const SmashedEnum & v )
   }
 }
 
-Moduleinst Moduleinst::parseElement( const QDomElement &element, bool *ok )
+Moduleinst *Moduleinst::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "moduleinst" ) {
     qCritical() << "Expected 'moduleinst', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Moduleinst();
+    return nullptr;
   }
 
-  Moduleinst result = Moduleinst();
+  Moduleinst* result = new Moduleinst();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "attribute" ) {
       bool ok;
-      Attribute o = Attribute::parseElement( e, &ok );
-      if ( ok ) result.addAttribute( o );
+      Attribute *o = Attribute::parseElement( e, &ok );
+      if ( ok ) result->addAttribute( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setModule( element.attribute( "module" ) );
-  result.setModulevariant( element.attribute( "modulevariant" ) );
-  result.setX( element.attribute( "x" ).toDouble() );
-  result.setY( element.attribute( "y" ).toDouble() );
-  result.setOffset( element.attribute( "offset" ).toInt() );
+  result->setName( element.attribute( "name" ) );
+  result->setModule( element.attribute( "module" ) );
+  result->setModulevariant( element.attribute( "modulevariant" ) );
+  if (element.hasAttribute("x"))
+    result->setX( element.attribute( "x" ).toDouble() );
+  if (element.hasAttribute("y"))
+    result->setY( element.attribute( "y" ).toDouble() );
+  if (element.hasAttribute("offset"))
+    result->setOffset( element.attribute( "offset" ).toInt() );
   if (element.hasAttribute("smashed"))  {
     SmashedEnum smashed = smashedEnumFromString( element.attribute( "smashed" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "smashed" ) << "\" in the \"smashed\" element";
-      return Moduleinst();
+      return nullptr;
     } else {
-      result.setSmashed( smashed );
+      result->setSmashed( smashed );
     }
   } else {
-    result.setSmashed(smashedEnumFromString("no"));
+    result->setSmashed(Smashed_Invalid);
   }
-  result.setRot( element.attribute( "rot" ) );
+  result->setRot( element.attribute( "rot" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -9760,22 +12495,39 @@ Moduleinst Moduleinst::parseElement( const QDomElement &element, bool *ok )
 void Moduleinst::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "moduleinst" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("module", module_() );
-  xml.writeAttribute("modulevariant", modulevariant() );
-  xml.writeAttribute("x", QString::number( x() ) );
-  xml.writeAttribute("y", QString::number( y() ) );
-  xml.writeAttribute("offset", QString::number( offset() ) );
-  xml.writeAttribute("smashed", smashedEnumToString( smashed() ));
-  xml.writeAttribute("rot", rot() );
-  foreach( Attribute e, mAttributeList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mModule.isEmpty())
+    xml.writeAttribute("module", mModule );
+  if (!mModulevariant.isEmpty())
+    xml.writeAttribute("modulevariant", mModulevariant );
+  if (mX_set)
+    xml.writeAttribute("x", QString::number( mX ) );
+  if (mY_set)
+    xml.writeAttribute("y", QString::number( mY ) );
+  if (mOffset_set)
+    xml.writeAttribute("offset", QString::number( mOffset ) );
+  if (mSmashed != Smashed_Invalid)
+    xml.writeAttribute("smashed", smashedEnumToString(mSmashed));
+  if (!mRot.isEmpty())
+    xml.writeAttribute("rot", mRot );
+  foreach( Attribute* e, mAttributeList ) {
+    if (e)
+      e->writeElement( xml );
   }
   xml.writeEndElement();
 }
 
 
-void Moduleinsts::addModuleinst( const Moduleinst &v )
+Moduleinsts::Moduleinsts()
+{
+}
+
+Moduleinsts::~Moduleinsts()
+{
+}
+
+void Moduleinsts::addModuleinst( Moduleinst* v )
 {
   mModuleinstList.append( v );
 }
@@ -9790,23 +12542,23 @@ Moduleinst::List *Moduleinsts::moduleinstList()
   return &mModuleinstList;
 }
 
-Moduleinsts Moduleinsts::parseElement( const QDomElement &element, bool *ok )
+Moduleinsts *Moduleinsts::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "moduleinsts" ) {
     qCritical() << "Expected 'moduleinsts', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Moduleinsts();
+    return nullptr;
   }
 
-  Moduleinsts result = Moduleinsts();
+  Moduleinsts* result = new Moduleinsts();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "moduleinst" ) {
       bool ok;
-      Moduleinst o = Moduleinst::parseElement( e, &ok );
-      if ( ok ) result.addModuleinst( o );
+      Moduleinst *o = Moduleinst::parseElement( e, &ok );
+      if ( ok ) result->addModuleinst( o );
     }
   }
 
@@ -9819,116 +12571,131 @@ void Moduleinsts::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mModuleinstList.isEmpty() ) {
     xml.writeStartElement( "moduleinsts" );
-    foreach( Moduleinst e, mModuleinstList ) {
-      e.writeElement( xml );
+    foreach( Moduleinst* e, mModuleinstList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
 
-void Sheet::setDescription( const Description &v )
+Sheet::Sheet()
+{
+  mDescription = nullptr;
+  mPlain = nullptr;
+  mModuleinsts = nullptr;
+  mInstances = nullptr;
+  mBusses = nullptr;
+  mNets = nullptr;
+}
+
+Sheet::~Sheet()
+{
+}
+
+void Sheet::setDescription( Description *v )
 {
   mDescription = v;
 }
 
 Description *Sheet::description()
 {
-  return &mDescription;
+  return mDescription;
 }
 
-void Sheet::setPlain( const Plain &v )
+void Sheet::setPlain( Plain *v )
 {
   mPlain = v;
 }
 
 Plain *Sheet::plain()
 {
-  return &mPlain;
+  return mPlain;
 }
 
-void Sheet::setModuleinsts( const Moduleinsts &v )
+void Sheet::setModuleinsts( Moduleinsts *v )
 {
   mModuleinsts = v;
 }
 
 Moduleinsts *Sheet::moduleinsts()
 {
-  return &mModuleinsts;
+  return mModuleinsts;
 }
 
-void Sheet::setInstances( const Instances &v )
+void Sheet::setInstances( Instances *v )
 {
   mInstances = v;
 }
 
 Instances *Sheet::instances()
 {
-  return &mInstances;
+  return mInstances;
 }
 
-void Sheet::setBusses( const Busses &v )
+void Sheet::setBusses( Busses *v )
 {
   mBusses = v;
 }
 
 Busses *Sheet::busses()
 {
-  return &mBusses;
+  return mBusses;
 }
 
-void Sheet::setNets( const Nets &v )
+void Sheet::setNets( Nets *v )
 {
   mNets = v;
 }
 
 Nets *Sheet::nets()
 {
-  return &mNets;
+  return mNets;
 }
 
-Sheet Sheet::parseElement( const QDomElement &element, bool *ok )
+Sheet *Sheet::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "sheet" ) {
     qCritical() << "Expected 'sheet', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Sheet();
+    return nullptr;
   }
 
-  Sheet result = Sheet();
+  Sheet* result = new Sheet();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "description" ) {
       bool ok;
-      Description o = Description::parseElement( e, &ok );
-      if ( ok ) result.setDescription( o );
+      Description *o = Description::parseElement( e, &ok );
+      if ( ok ) result->setDescription( o );
     }
     else if ( e.tagName() == "plain" ) {
       bool ok;
-      Plain o = Plain::parseElement( e, &ok );
-      if ( ok ) result.setPlain( o );
+      Plain *o = Plain::parseElement( e, &ok );
+      if ( ok ) result->setPlain( o );
     }
     else if ( e.tagName() == "moduleinsts" ) {
       bool ok;
-      Moduleinsts o = Moduleinsts::parseElement( e, &ok );
-      if ( ok ) result.setModuleinsts( o );
+      Moduleinsts *o = Moduleinsts::parseElement( e, &ok );
+      if ( ok ) result->setModuleinsts( o );
     }
     else if ( e.tagName() == "instances" ) {
       bool ok;
-      Instances o = Instances::parseElement( e, &ok );
-      if ( ok ) result.setInstances( o );
+      Instances *o = Instances::parseElement( e, &ok );
+      if ( ok ) result->setInstances( o );
     }
     else if ( e.tagName() == "busses" ) {
       bool ok;
-      Busses o = Busses::parseElement( e, &ok );
-      if ( ok ) result.setBusses( o );
+      Busses *o = Busses::parseElement( e, &ok );
+      if ( ok ) result->setBusses( o );
     }
     else if ( e.tagName() == "nets" ) {
       bool ok;
-      Nets o = Nets::parseElement( e, &ok );
-      if ( ok ) result.setNets( o );
+      Nets *o = Nets::parseElement( e, &ok );
+      if ( ok ) result->setNets( o );
     }
   }
 
@@ -9940,17 +12707,31 @@ Sheet Sheet::parseElement( const QDomElement &element, bool *ok )
 void Sheet::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "sheet" );
-  mDescription.writeElement( xml );
-  mPlain.writeElement( xml );
-  mModuleinsts.writeElement( xml );
-  mInstances.writeElement( xml );
-  mBusses.writeElement( xml );
-  mNets.writeElement( xml );
+  if (mDescription)
+    mDescription->writeElement( xml );
+  if (mPlain)
+    mPlain->writeElement( xml );
+  if (mModuleinsts)
+    mModuleinsts->writeElement( xml );
+  if (mInstances)
+    mInstances->writeElement( xml );
+  if (mBusses)
+    mBusses->writeElement( xml );
+  if (mNets)
+    mNets->writeElement( xml );
   xml.writeEndElement();
 }
 
 
-void Sheets::addSheet( const Sheet &v )
+Sheets::Sheets()
+{
+}
+
+Sheets::~Sheets()
+{
+}
+
+void Sheets::addSheet( Sheet* v )
 {
   mSheetList.append( v );
 }
@@ -9965,23 +12746,23 @@ Sheet::List *Sheets::sheetList()
   return &mSheetList;
 }
 
-Sheets Sheets::parseElement( const QDomElement &element, bool *ok )
+Sheets *Sheets::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "sheets" ) {
     qCritical() << "Expected 'sheets', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Sheets();
+    return nullptr;
   }
 
-  Sheets result = Sheets();
+  Sheets* result = new Sheets();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "sheet" ) {
       bool ok;
-      Sheet o = Sheet::parseElement( e, &ok );
-      if ( ok ) result.addSheet( o );
+      Sheet *o = Sheet::parseElement( e, &ok );
+      if ( ok ) result->addSheet( o );
     }
   }
 
@@ -9994,13 +12775,23 @@ void Sheets::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mSheetList.isEmpty() ) {
     xml.writeStartElement( "sheets" );
-    foreach( Sheet e, mSheetList ) {
-      e.writeElement( xml );
+    foreach( Sheet* e, mSheetList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Part::Part()
+{
+  mSpice = nullptr;
+}
+
+Part::~Part()
+{
+}
 
 void Part::setName( const QString &v )
 {
@@ -10082,7 +12873,7 @@ QString Part::value() const
   return mValue;
 }
 
-void Part::addAttribute( const Attribute &v )
+void Part::addAttribute( Attribute* v )
 {
   mAttributeList.append( v );
 }
@@ -10097,7 +12888,7 @@ Attribute::List *Part::attributeList()
   return &mAttributeList;
 }
 
-void Part::addVariant( const Variant &v )
+void Part::addVariant( Variant* v )
 {
   mVariantList.append( v );
 }
@@ -10112,54 +12903,54 @@ Variant::List *Part::variantList()
   return &mVariantList;
 }
 
-void Part::setSpice( const Spice &v )
+void Part::setSpice( Spice *v )
 {
   mSpice = v;
 }
 
 Spice *Part::spice()
 {
-  return &mSpice;
+  return mSpice;
 }
 
-Part Part::parseElement( const QDomElement &element, bool *ok )
+Part *Part::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "part" ) {
     qCritical() << "Expected 'part', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Part();
+    return nullptr;
   }
 
-  Part result = Part();
+  Part* result = new Part();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "attribute" ) {
       bool ok;
-      Attribute o = Attribute::parseElement( e, &ok );
-      if ( ok ) result.addAttribute( o );
+      Attribute *o = Attribute::parseElement( e, &ok );
+      if ( ok ) result->addAttribute( o );
     }
     else if ( e.tagName() == "variant" ) {
       bool ok;
-      Variant o = Variant::parseElement( e, &ok );
-      if ( ok ) result.addVariant( o );
+      Variant *o = Variant::parseElement( e, &ok );
+      if ( ok ) result->addVariant( o );
     }
     else if ( e.tagName() == "spice" ) {
       bool ok;
-      Spice o = Spice::parseElement( e, &ok );
-      if ( ok ) result.setSpice( o );
+      Spice *o = Spice::parseElement( e, &ok );
+      if ( ok ) result->setSpice( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setLibrary( element.attribute( "library" ) );
-  result.setLibraryUrn( element.attribute( "library_urn" ) );
-  result.setDeviceset( element.attribute( "deviceset" ) );
-  result.setDevice( element.attribute( "device" ) );
-  result.setPackage3dUrn( element.attribute( "package3d_urn" ) );
-  result.setTechnology( element.attribute( "technology" ) );
-  result.setValue( element.attribute( "value" ) );
+  result->setName( element.attribute( "name" ) );
+  result->setLibrary( element.attribute( "library" ) );
+  result->setLibraryUrn( element.attribute( "library_urn" ) );
+  result->setDeviceset( element.attribute( "deviceset" ) );
+  result->setDevice( element.attribute( "device" ) );
+  result->setPackage3dUrn( element.attribute( "package3d_urn" ) );
+  result->setTechnology( element.attribute( "technology" ) );
+  result->setValue( element.attribute( "value" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -10168,26 +12959,45 @@ Part Part::parseElement( const QDomElement &element, bool *ok )
 void Part::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "part" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("library", library() );
-  xml.writeAttribute("library_urn", libraryUrn() );
-  xml.writeAttribute("deviceset", deviceset() );
-  xml.writeAttribute("device", device() );
-  xml.writeAttribute("package3d_urn", package3dUrn() );
-  xml.writeAttribute("technology", technology() );
-  xml.writeAttribute("value", value() );
-  foreach( Attribute e, mAttributeList ) {
-    e.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mLibrary.isEmpty())
+    xml.writeAttribute("library", mLibrary );
+  if (!mLibraryUrn.isEmpty())
+    xml.writeAttribute("library_urn", mLibraryUrn );
+  if (!mDeviceset.isEmpty())
+    xml.writeAttribute("deviceset", mDeviceset );
+  if (!mDevice.isEmpty())
+    xml.writeAttribute("device", mDevice );
+  if (!mPackage3dUrn.isEmpty())
+    xml.writeAttribute("package3d_urn", mPackage3dUrn );
+  if (!mTechnology.isEmpty())
+    xml.writeAttribute("technology", mTechnology );
+  if (!mValue.isEmpty())
+    xml.writeAttribute("value", mValue );
+  foreach( Attribute* e, mAttributeList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  foreach( Variant e, mVariantList ) {
-    e.writeElement( xml );
+  foreach( Variant* e, mVariantList ) {
+    if (e)
+      e->writeElement( xml );
   }
-  mSpice.writeElement( xml );
+  if (mSpice)
+    mSpice->writeElement( xml );
   xml.writeEndElement();
 }
 
 
-void Parts::addPart( const Part &v )
+Parts::Parts()
+{
+}
+
+Parts::~Parts()
+{
+}
+
+void Parts::addPart( Part* v )
 {
   mPartList.append( v );
 }
@@ -10202,23 +13012,23 @@ Part::List *Parts::partList()
   return &mPartList;
 }
 
-Parts Parts::parseElement( const QDomElement &element, bool *ok )
+Parts *Parts::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "parts" ) {
     qCritical() << "Expected 'parts', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Parts();
+    return nullptr;
   }
 
-  Parts result = Parts();
+  Parts* result = new Parts();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "part" ) {
       bool ok;
-      Part o = Part::parseElement( e, &ok );
-      if ( ok ) result.addPart( o );
+      Part *o = Part::parseElement( e, &ok );
+      if ( ok ) result->addPart( o );
     }
   }
 
@@ -10231,13 +13041,25 @@ void Parts::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mPartList.isEmpty() ) {
     xml.writeStartElement( "parts" );
-    foreach( Part e, mPartList ) {
-      e.writeElement( xml );
+    foreach( Part* e, mPartList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Port::Port()
+{
+  mSide_set = false;
+  mCoord_set = false;
+  mDirection = Direction_Invalid;
+}
+
+Port::~Port()
+{
+}
 
 void Port::setName( const QString &v )
 {
@@ -10249,8 +13071,9 @@ QString Port::name() const
   return mName;
 }
 
-void Port::setSide( int v )
+void Port::setSide( const int v )
 {
+  mSide_set = true;
   mSide = v;
 }
 
@@ -10259,14 +13082,25 @@ int Port::side() const
   return mSide;
 }
 
-void Port::setCoord( double v )
+bool Port::sideSet() const
 {
+  return mSide_set;
+}
+
+void Port::setCoord( const double v )
+{
+  mCoord_set = true;
   mCoord = v;
 }
 
 double Port::coord() const
 {
   return mCoord;
+}
+
+bool Port::coordSet() const
+{
+  return mCoord_set;
 }
 
 void Port::setDirection( const DirectionEnum &v )
@@ -10325,29 +13159,31 @@ QString Port::directionEnumToString( const DirectionEnum & v )
   }
 }
 
-Port Port::parseElement( const QDomElement &element, bool *ok )
+Port *Port::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "port" ) {
     qCritical() << "Expected 'port', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Port();
+    return nullptr;
   }
 
-  Port result = Port();
+  Port* result = new Port();
 
-  result.setName( element.attribute( "name" ) );
-  result.setSide( element.attribute( "side" ).toInt() );
-  result.setCoord( element.attribute( "coord" ).toDouble() );
+  result->setName( element.attribute( "name" ) );
+  if (element.hasAttribute("side"))
+    result->setSide( element.attribute( "side" ).toInt() );
+  if (element.hasAttribute("coord"))
+    result->setCoord( element.attribute( "coord" ).toDouble() );
   if (element.hasAttribute("direction"))  {
     DirectionEnum direction = directionEnumFromString( element.attribute( "direction" ), ok  );
     if (ok && *ok == false) {
       qCritical() << "Invalid string: \"" << element.attribute( "direction" ) << "\" in the \"direction\" element";
-      return Port();
+      return nullptr;
     } else {
-      result.setDirection( direction );
+      result->setDirection( direction );
     }
   } else {
-    result.setDirection(directionEnumFromString("io"));
+    result->setDirection(Direction_Invalid);
   }
 
   if ( ok ) *ok = true;
@@ -10356,11 +13192,28 @@ Port Port::parseElement( const QDomElement &element, bool *ok )
 
 void Port::writeElement( QXmlStreamWriter &xml ) const
 {
-  xml.writeEmptyElement( "port" );
+  xml.writeStartElement( "port" );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (mSide_set)
+    xml.writeAttribute("side", QString::number( mSide ) );
+  if (mCoord_set)
+    xml.writeAttribute("coord", QString::number( mCoord ) );
+  if (mDirection != Direction_Invalid)
+    xml.writeAttribute("direction", directionEnumToString(mDirection));
+  xml.writeEndElement();
 }
 
 
-void Ports::addPort( const Port &v )
+Ports::Ports()
+{
+}
+
+Ports::~Ports()
+{
+}
+
+void Ports::addPort( Port* v )
 {
   mPortList.append( v );
 }
@@ -10375,23 +13228,23 @@ Port::List *Ports::portList()
   return &mPortList;
 }
 
-Ports Ports::parseElement( const QDomElement &element, bool *ok )
+Ports *Ports::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "ports" ) {
     qCritical() << "Expected 'ports', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Ports();
+    return nullptr;
   }
 
-  Ports result = Ports();
+  Ports* result = new Ports();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "port" ) {
       bool ok;
-      Port o = Port::parseElement( e, &ok );
-      if ( ok ) result.addPort( o );
+      Port *o = Port::parseElement( e, &ok );
+      if ( ok ) result->addPort( o );
     }
   }
 
@@ -10404,13 +13257,29 @@ void Ports::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mPortList.isEmpty() ) {
     xml.writeStartElement( "ports" );
-    foreach( Port e, mPortList ) {
-      e.writeElement( xml );
+    foreach( Port* e, mPortList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Module::Module()
+{
+  mDx_set = false;
+  mDy_set = false;
+  mDescription = nullptr;
+  mPorts = nullptr;
+  mVariantdefs = nullptr;
+  mParts = nullptr;
+  mSheets = nullptr;
+}
+
+Module::~Module()
+{
+}
 
 void Module::setName( const QString &v )
 {
@@ -10432,8 +13301,9 @@ QString Module::prefix() const
   return mPrefix;
 }
 
-void Module::setDx( double v )
+void Module::setDx( const double v )
 {
+  mDx_set = true;
   mDx = v;
 }
 
@@ -10442,8 +13312,14 @@ double Module::dx() const
   return mDx;
 }
 
-void Module::setDy( double v )
+bool Module::dxSet() const
 {
+  return mDx_set;
+}
+
+void Module::setDy( const double v )
+{
+  mDy_set = true;
   mDy = v;
 }
 
@@ -10452,100 +13328,107 @@ double Module::dy() const
   return mDy;
 }
 
-void Module::setDescription( const Description &v )
+bool Module::dySet() const
+{
+  return mDy_set;
+}
+
+void Module::setDescription( Description *v )
 {
   mDescription = v;
 }
 
 Description *Module::description()
 {
-  return &mDescription;
+  return mDescription;
 }
 
-void Module::setPorts( const Ports &v )
+void Module::setPorts( Ports *v )
 {
   mPorts = v;
 }
 
 Ports *Module::ports()
 {
-  return &mPorts;
+  return mPorts;
 }
 
-void Module::setVariantdefs( const Variantdefs &v )
+void Module::setVariantdefs( Variantdefs *v )
 {
   mVariantdefs = v;
 }
 
 Variantdefs *Module::variantdefs()
 {
-  return &mVariantdefs;
+  return mVariantdefs;
 }
 
-void Module::setParts( const Parts &v )
+void Module::setParts( Parts *v )
 {
   mParts = v;
 }
 
 Parts *Module::parts()
 {
-  return &mParts;
+  return mParts;
 }
 
-void Module::setSheets( const Sheets &v )
+void Module::setSheets( Sheets *v )
 {
   mSheets = v;
 }
 
 Sheets *Module::sheets()
 {
-  return &mSheets;
+  return mSheets;
 }
 
-Module Module::parseElement( const QDomElement &element, bool *ok )
+Module *Module::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "module" ) {
     qCritical() << "Expected 'module', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Module();
+    return nullptr;
   }
 
-  Module result = Module();
+  Module* result = new Module();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "description" ) {
       bool ok;
-      Description o = Description::parseElement( e, &ok );
-      if ( ok ) result.setDescription( o );
+      Description *o = Description::parseElement( e, &ok );
+      if ( ok ) result->setDescription( o );
     }
     else if ( e.tagName() == "ports" ) {
       bool ok;
-      Ports o = Ports::parseElement( e, &ok );
-      if ( ok ) result.setPorts( o );
+      Ports *o = Ports::parseElement( e, &ok );
+      if ( ok ) result->setPorts( o );
     }
     else if ( e.tagName() == "variantdefs" ) {
       bool ok;
-      Variantdefs o = Variantdefs::parseElement( e, &ok );
-      if ( ok ) result.setVariantdefs( o );
+      Variantdefs *o = Variantdefs::parseElement( e, &ok );
+      if ( ok ) result->setVariantdefs( o );
     }
     else if ( e.tagName() == "parts" ) {
       bool ok;
-      Parts o = Parts::parseElement( e, &ok );
-      if ( ok ) result.setParts( o );
+      Parts *o = Parts::parseElement( e, &ok );
+      if ( ok ) result->setParts( o );
     }
     else if ( e.tagName() == "sheets" ) {
       bool ok;
-      Sheets o = Sheets::parseElement( e, &ok );
-      if ( ok ) result.setSheets( o );
+      Sheets *o = Sheets::parseElement( e, &ok );
+      if ( ok ) result->setSheets( o );
     }
   }
 
-  result.setName( element.attribute( "name" ) );
-  result.setPrefix( element.attribute( "prefix" ) );
-  result.setDx( element.attribute( "dx" ).toDouble() );
-  result.setDy( element.attribute( "dy" ).toDouble() );
+  result->setName( element.attribute( "name" ) );
+  result->setPrefix( element.attribute( "prefix" ) );
+  if (element.hasAttribute("dx"))
+    result->setDx( element.attribute( "dx" ).toDouble() );
+  if (element.hasAttribute("dy"))
+    result->setDy( element.attribute( "dy" ).toDouble() );
 
   if ( ok ) *ok = true;
   return result;
@@ -10554,20 +13437,37 @@ Module Module::parseElement( const QDomElement &element, bool *ok )
 void Module::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "module" );
-  xml.writeAttribute("name", name() );
-  xml.writeAttribute("prefix", prefix() );
-  xml.writeAttribute("dx", QString::number( dx() ) );
-  xml.writeAttribute("dy", QString::number( dy() ) );
-  mDescription.writeElement( xml );
-  mPorts.writeElement( xml );
-  mVariantdefs.writeElement( xml );
-  mParts.writeElement( xml );
-  mSheets.writeElement( xml );
+  if (!mName.isEmpty())
+    xml.writeAttribute("name", mName );
+  if (!mPrefix.isEmpty())
+    xml.writeAttribute("prefix", mPrefix );
+  if (mDx_set)
+    xml.writeAttribute("dx", QString::number( mDx ) );
+  if (mDy_set)
+    xml.writeAttribute("dy", QString::number( mDy ) );
+  if (mDescription)
+    mDescription->writeElement( xml );
+  if (mPorts)
+    mPorts->writeElement( xml );
+  if (mVariantdefs)
+    mVariantdefs->writeElement( xml );
+  if (mParts)
+    mParts->writeElement( xml );
+  if (mSheets)
+    mSheets->writeElement( xml );
   xml.writeEndElement();
 }
 
 
-void Modules::addModule( const Module &v )
+Modules::Modules()
+{
+}
+
+Modules::~Modules()
+{
+}
+
+void Modules::addModule( Module* v )
 {
   mModuleList.append( v );
 }
@@ -10582,23 +13482,23 @@ Module::List *Modules::moduleList()
   return &mModuleList;
 }
 
-Modules Modules::parseElement( const QDomElement &element, bool *ok )
+Modules *Modules::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "modules" ) {
     qCritical() << "Expected 'modules', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Modules();
+    return nullptr;
   }
 
-  Modules result = Modules();
+  Modules* result = new Modules();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "module" ) {
       bool ok;
-      Module o = Module::parseElement( e, &ok );
-      if ( ok ) result.addModule( o );
+      Module *o = Module::parseElement( e, &ok );
+      if ( ok ) result->addModule( o );
     }
   }
 
@@ -10611,13 +13511,31 @@ void Modules::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mModuleList.isEmpty() ) {
     xml.writeStartElement( "modules" );
-    foreach( Module e, mModuleList ) {
-      e.writeElement( xml );
+    foreach( Module* e, mModuleList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
+
+Schematic::Schematic()
+{
+  mDescription = nullptr;
+  mLibraries = nullptr;
+  mAttributes = nullptr;
+  mVariantdefs = nullptr;
+  mClasses = nullptr;
+  mModules = nullptr;
+  mParts = nullptr;
+  mSheets = nullptr;
+  mErrors = nullptr;
+}
+
+Schematic::~Schematic()
+{
+}
 
 void Schematic::setXreflabel( const QString &v )
 {
@@ -10639,158 +13557,158 @@ QString Schematic::xrefpart() const
   return mXrefpart;
 }
 
-void Schematic::setDescription( const Description &v )
+void Schematic::setDescription( Description *v )
 {
   mDescription = v;
 }
 
 Description *Schematic::description()
 {
-  return &mDescription;
+  return mDescription;
 }
 
-void Schematic::setLibraries( const Libraries &v )
+void Schematic::setLibraries( Libraries *v )
 {
   mLibraries = v;
 }
 
 Libraries *Schematic::libraries()
 {
-  return &mLibraries;
+  return mLibraries;
 }
 
-void Schematic::setAttributes( const Attributes &v )
+void Schematic::setAttributes( Attributes *v )
 {
   mAttributes = v;
 }
 
 Attributes *Schematic::attributes()
 {
-  return &mAttributes;
+  return mAttributes;
 }
 
-void Schematic::setVariantdefs( const Variantdefs &v )
+void Schematic::setVariantdefs( Variantdefs *v )
 {
   mVariantdefs = v;
 }
 
 Variantdefs *Schematic::variantdefs()
 {
-  return &mVariantdefs;
+  return mVariantdefs;
 }
 
-void Schematic::setClasses( const Classes &v )
+void Schematic::setClasses( Classes *v )
 {
   mClasses = v;
 }
 
 Classes *Schematic::classes()
 {
-  return &mClasses;
+  return mClasses;
 }
 
-void Schematic::setModules( const Modules &v )
+void Schematic::setModules( Modules *v )
 {
   mModules = v;
 }
 
 Modules *Schematic::modules()
 {
-  return &mModules;
+  return mModules;
 }
 
-void Schematic::setParts( const Parts &v )
+void Schematic::setParts( Parts *v )
 {
   mParts = v;
 }
 
 Parts *Schematic::parts()
 {
-  return &mParts;
+  return mParts;
 }
 
-void Schematic::setSheets( const Sheets &v )
+void Schematic::setSheets( Sheets *v )
 {
   mSheets = v;
 }
 
 Sheets *Schematic::sheets()
 {
-  return &mSheets;
+  return mSheets;
 }
 
-void Schematic::setErrors( const Errors &v )
+void Schematic::setErrors( Errors *v )
 {
   mErrors = v;
 }
 
 Errors *Schematic::errors()
 {
-  return &mErrors;
+  return mErrors;
 }
 
-Schematic Schematic::parseElement( const QDomElement &element, bool *ok )
+Schematic *Schematic::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "schematic" ) {
     qCritical() << "Expected 'schematic', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Schematic();
+    return nullptr;
   }
 
-  Schematic result = Schematic();
+  Schematic* result = new Schematic();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "description" ) {
       bool ok;
-      Description o = Description::parseElement( e, &ok );
-      if ( ok ) result.setDescription( o );
+      Description *o = Description::parseElement( e, &ok );
+      if ( ok ) result->setDescription( o );
     }
     else if ( e.tagName() == "libraries" ) {
       bool ok;
-      Libraries o = Libraries::parseElement( e, &ok );
-      if ( ok ) result.setLibraries( o );
+      Libraries *o = Libraries::parseElement( e, &ok );
+      if ( ok ) result->setLibraries( o );
     }
     else if ( e.tagName() == "attributes" ) {
       bool ok;
-      Attributes o = Attributes::parseElement( e, &ok );
-      if ( ok ) result.setAttributes( o );
+      Attributes *o = Attributes::parseElement( e, &ok );
+      if ( ok ) result->setAttributes( o );
     }
     else if ( e.tagName() == "variantdefs" ) {
       bool ok;
-      Variantdefs o = Variantdefs::parseElement( e, &ok );
-      if ( ok ) result.setVariantdefs( o );
+      Variantdefs *o = Variantdefs::parseElement( e, &ok );
+      if ( ok ) result->setVariantdefs( o );
     }
     else if ( e.tagName() == "classes" ) {
       bool ok;
-      Classes o = Classes::parseElement( e, &ok );
-      if ( ok ) result.setClasses( o );
+      Classes *o = Classes::parseElement( e, &ok );
+      if ( ok ) result->setClasses( o );
     }
     else if ( e.tagName() == "modules" ) {
       bool ok;
-      Modules o = Modules::parseElement( e, &ok );
-      if ( ok ) result.setModules( o );
+      Modules *o = Modules::parseElement( e, &ok );
+      if ( ok ) result->setModules( o );
     }
     else if ( e.tagName() == "parts" ) {
       bool ok;
-      Parts o = Parts::parseElement( e, &ok );
-      if ( ok ) result.setParts( o );
+      Parts *o = Parts::parseElement( e, &ok );
+      if ( ok ) result->setParts( o );
     }
     else if ( e.tagName() == "sheets" ) {
       bool ok;
-      Sheets o = Sheets::parseElement( e, &ok );
-      if ( ok ) result.setSheets( o );
+      Sheets *o = Sheets::parseElement( e, &ok );
+      if ( ok ) result->setSheets( o );
     }
     else if ( e.tagName() == "errors" ) {
       bool ok;
-      Errors o = Errors::parseElement( e, &ok );
-      if ( ok ) result.setErrors( o );
+      Errors *o = Errors::parseElement( e, &ok );
+      if ( ok ) result->setErrors( o );
     }
   }
 
-  result.setXreflabel( element.attribute( "xreflabel" ) );
-  result.setXrefpart( element.attribute( "xrefpart" ) );
+  result->setXreflabel( element.attribute( "xreflabel" ) );
+  result->setXrefpart( element.attribute( "xrefpart" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -10799,123 +13717,148 @@ Schematic Schematic::parseElement( const QDomElement &element, bool *ok )
 void Schematic::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "schematic" );
-  xml.writeAttribute("xreflabel", xreflabel() );
-  xml.writeAttribute("xrefpart", xrefpart() );
-  mDescription.writeElement( xml );
-  mLibraries.writeElement( xml );
-  mAttributes.writeElement( xml );
-  mVariantdefs.writeElement( xml );
-  mClasses.writeElement( xml );
-  mModules.writeElement( xml );
-  mParts.writeElement( xml );
-  mSheets.writeElement( xml );
-  mErrors.writeElement( xml );
+  if (!mXreflabel.isEmpty())
+    xml.writeAttribute("xreflabel", mXreflabel );
+  if (!mXrefpart.isEmpty())
+    xml.writeAttribute("xrefpart", mXrefpart );
+  if (mDescription)
+    mDescription->writeElement( xml );
+  if (mLibraries)
+    mLibraries->writeElement( xml );
+  if (mAttributes)
+    mAttributes->writeElement( xml );
+  if (mVariantdefs)
+    mVariantdefs->writeElement( xml );
+  if (mClasses)
+    mClasses->writeElement( xml );
+  if (mModules)
+    mModules->writeElement( xml );
+  if (mParts)
+    mParts->writeElement( xml );
+  if (mSheets)
+    mSheets->writeElement( xml );
+  if (mErrors)
+    mErrors->writeElement( xml );
   xml.writeEndElement();
 }
 
 
-void Drawing::setLibrary( const Library &v )
+Drawing::Drawing()
+{
+  mLibrary = nullptr;
+  mSchematic = nullptr;
+  mBoard = nullptr;
+  mSettings = nullptr;
+  mGrid = nullptr;
+  mLayers = nullptr;
+}
+
+Drawing::~Drawing()
+{
+}
+
+void Drawing::setLibrary( Library *v )
 {
   mLibrary = v;
 }
 
 Library *Drawing::library()
 {
-  return &mLibrary;
+  return mLibrary;
 }
 
-void Drawing::setSchematic( const Schematic &v )
+void Drawing::setSchematic( Schematic *v )
 {
   mSchematic = v;
 }
 
 Schematic *Drawing::schematic()
 {
-  return &mSchematic;
+  return mSchematic;
 }
 
-void Drawing::setBoard( const Board &v )
+void Drawing::setBoard( Board *v )
 {
   mBoard = v;
 }
 
 Board *Drawing::board()
 {
-  return &mBoard;
+  return mBoard;
 }
 
-void Drawing::setSettings( const Settings &v )
+void Drawing::setSettings( Settings *v )
 {
   mSettings = v;
 }
 
 Settings *Drawing::settings()
 {
-  return &mSettings;
+  return mSettings;
 }
 
-void Drawing::setGrid( const Grid &v )
+void Drawing::setGrid( Grid *v )
 {
   mGrid = v;
 }
 
 Grid *Drawing::grid()
 {
-  return &mGrid;
+  return mGrid;
 }
 
-void Drawing::setLayers( const Layers &v )
+void Drawing::setLayers( Layers *v )
 {
   mLayers = v;
 }
 
 Layers *Drawing::layers()
 {
-  return &mLayers;
+  return mLayers;
 }
 
-Drawing Drawing::parseElement( const QDomElement &element, bool *ok )
+Drawing *Drawing::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "drawing" ) {
     qCritical() << "Expected 'drawing', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Drawing();
+    return nullptr;
   }
 
-  Drawing result = Drawing();
+  Drawing* result = new Drawing();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "library" ) {
       bool ok;
-      Library o = Library::parseElement( e, &ok );
-      if ( ok ) result.setLibrary( o );
+      Library *o = Library::parseElement( e, &ok );
+      if ( ok ) result->setLibrary( o );
     }
     else if ( e.tagName() == "schematic" ) {
       bool ok;
-      Schematic o = Schematic::parseElement( e, &ok );
-      if ( ok ) result.setSchematic( o );
+      Schematic *o = Schematic::parseElement( e, &ok );
+      if ( ok ) result->setSchematic( o );
     }
     else if ( e.tagName() == "board" ) {
       bool ok;
-      Board o = Board::parseElement( e, &ok );
-      if ( ok ) result.setBoard( o );
+      Board *o = Board::parseElement( e, &ok );
+      if ( ok ) result->setBoard( o );
     }
     else if ( e.tagName() == "settings" ) {
       bool ok;
-      Settings o = Settings::parseElement( e, &ok );
-      if ( ok ) result.setSettings( o );
+      Settings *o = Settings::parseElement( e, &ok );
+      if ( ok ) result->setSettings( o );
     }
     else if ( e.tagName() == "grid" ) {
       bool ok;
-      Grid o = Grid::parseElement( e, &ok );
-      if ( ok ) result.setGrid( o );
+      Grid *o = Grid::parseElement( e, &ok );
+      if ( ok ) result->setGrid( o );
     }
     else if ( e.tagName() == "layers" ) {
       bool ok;
-      Layers o = Layers::parseElement( e, &ok );
-      if ( ok ) result.setLayers( o );
+      Layers *o = Layers::parseElement( e, &ok );
+      if ( ok ) result->setLayers( o );
     }
   }
 
@@ -10927,24 +13870,46 @@ Drawing Drawing::parseElement( const QDomElement &element, bool *ok )
 void Drawing::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "drawing" );
-  mLibrary.writeElement( xml );
-  mSchematic.writeElement( xml );
-  mBoard.writeElement( xml );
-  mSettings.writeElement( xml );
-  mGrid.writeElement( xml );
-  mLayers.writeElement( xml );
+  if (mLibrary)
+    mLibrary->writeElement( xml );
+  if (mSchematic)
+    mSchematic->writeElement( xml );
+  if (mBoard)
+    mBoard->writeElement( xml );
+  if (mSettings)
+    mSettings->writeElement( xml );
+  if (mGrid)
+    mGrid->writeElement( xml );
+  if (mLayers)
+    mLayers->writeElement( xml );
   xml.writeEndElement();
 }
 
 
-void Note::setVersion( double v )
+Note::Note()
 {
+  mVersion_set = false;
+  mSeverity = Severity_Invalid;
+}
+
+Note::~Note()
+{
+}
+
+void Note::setVersion( const double v )
+{
+  mVersion_set = true;
   mVersion = v;
 }
 
 double Note::version() const
 {
   return mVersion;
+}
+
+bool Note::versionSet() const
+{
+  return mVersion_set;
 }
 
 void Note::setSeverity( const SeverityEnum &v )
@@ -10998,24 +13963,25 @@ QString Note::severityEnumToString( const SeverityEnum & v )
   }
 }
 
-Note Note::parseElement( const QDomElement &element, bool *ok )
+Note *Note::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "note" ) {
     qCritical() << "Expected 'note', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Note();
+    return nullptr;
   }
 
-  Note result = Note();
+  Note* result = new Note();
 
-  result.setValue( element.text() );
-  result.setVersion( element.attribute( "version" ).toDouble() );
+  result->setValue( element.text() );
+  if (element.hasAttribute("version"))
+    result->setVersion( element.attribute( "version" ).toDouble() );
   SeverityEnum severity = severityEnumFromString( element.attribute( "severity" ), ok  );
   if (ok && *ok == false) {
     qCritical() << "Invalid string: \"" << element.attribute( "severity" ) << "\" in the \"severity\" element";
-    return Note();
+    return nullptr;
   } else {
-    result.setSeverity( severity );
+    result->setSeverity( severity );
   }
 
   if ( ok ) *ok = true;
@@ -11026,15 +13992,25 @@ void Note::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !value().isEmpty() ) {
     xml.writeStartElement( "note" );
-  xml.writeAttribute("version", QString::number( version() ) );
-  xml.writeAttribute("severity", severityEnumToString( severity() ));
+  if (mVersion_set)
+    xml.writeAttribute("version", QString::number( mVersion ) );
+  if (mSeverity != Severity_Invalid)
+    xml.writeAttribute("severity", severityEnumToString(mSeverity));
     xml.writeCharacters( value() );
     xml.writeEndElement();
   }
 }
 
 
-void Compatibility::addNote( const Note &v )
+Compatibility::Compatibility()
+{
+}
+
+Compatibility::~Compatibility()
+{
+}
+
+void Compatibility::addNote( Note* v )
 {
   mNoteList.append( v );
 }
@@ -11049,23 +14025,23 @@ Note::List *Compatibility::noteList()
   return &mNoteList;
 }
 
-Compatibility Compatibility::parseElement( const QDomElement &element, bool *ok )
+Compatibility *Compatibility::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "compatibility" ) {
     qCritical() << "Expected 'compatibility', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Compatibility();
+    return nullptr;
   }
 
-  Compatibility result = Compatibility();
+  Compatibility* result = new Compatibility();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "note" ) {
       bool ok;
-      Note o = Note::parseElement( e, &ok );
-      if ( ok ) result.addNote( o );
+      Note *o = Note::parseElement( e, &ok );
+      if ( ok ) result->addNote( o );
     }
   }
 
@@ -11078,70 +14054,81 @@ void Compatibility::writeElement( QXmlStreamWriter &xml ) const
 {
   if ( !mNoteList.isEmpty() ) {
     xml.writeStartElement( "compatibility" );
-    foreach( Note e, mNoteList ) {
-      e.writeElement( xml );
+    foreach( Note* e, mNoteList ) {
+      if (e)
+        e->writeElement( xml );
     }
     xml.writeEndElement();
   }
 }
 
 
-void Eagle::setVersion( double v )
+Eagle::Eagle()
+{
+  mCompatibility = nullptr;
+  mDrawing = nullptr;
+}
+
+Eagle::~Eagle()
+{
+}
+
+void Eagle::setVersion( const QString &v )
 {
   mVersion = v;
 }
 
-double Eagle::version() const
+QString Eagle::version() const
 {
   return mVersion;
 }
 
-void Eagle::setCompatibility( const Compatibility &v )
+void Eagle::setCompatibility( Compatibility *v )
 {
   mCompatibility = v;
 }
 
 Compatibility *Eagle::compatibility()
 {
-  return &mCompatibility;
+  return mCompatibility;
 }
 
-void Eagle::setDrawing( const Drawing &v )
+void Eagle::setDrawing( Drawing *v )
 {
   mDrawing = v;
 }
 
 Drawing *Eagle::drawing()
 {
-  return &mDrawing;
+  return mDrawing;
 }
 
-Eagle Eagle::parseElement( const QDomElement &element, bool *ok )
+Eagle *Eagle::parseElement( const QDomElement &element, bool *ok )
 {
   if ( element.tagName() != "eagle" ) {
     qCritical() << "Expected 'eagle', got '" << element.tagName() << "'.";
     if ( ok ) *ok = false;
-    return Eagle();
+    return nullptr;
   }
 
-  Eagle result = Eagle();
+  Eagle* result = new Eagle();
 
   QDomNode n;
   for( n = element.firstChild(); !n.isNull(); n = n.nextSibling() ) {
     QDomElement e = n.toElement();
     if ( e.tagName() == "compatibility" ) {
       bool ok;
-      Compatibility o = Compatibility::parseElement( e, &ok );
-      if ( ok ) result.setCompatibility( o );
+      Compatibility *o = Compatibility::parseElement( e, &ok );
+      if ( ok ) result->setCompatibility( o );
     }
     else if ( e.tagName() == "drawing" ) {
       bool ok;
-      Drawing o = Drawing::parseElement( e, &ok );
-      if ( ok ) result.setDrawing( o );
+      Drawing *o = Drawing::parseElement( e, &ok );
+      if ( ok ) result->setDrawing( o );
     }
   }
 
-  result.setVersion( element.attribute( "version" ).toDouble() );
+  result->setVersion( element.attribute( "version" ) );
 
   if ( ok ) *ok = true;
   return result;
@@ -11150,19 +14137,22 @@ Eagle Eagle::parseElement( const QDomElement &element, bool *ok )
 void Eagle::writeElement( QXmlStreamWriter &xml ) const
 {
   xml.writeStartElement( "eagle" );
-  xml.writeAttribute("version", QString::number( version() ) );
-  mCompatibility.writeElement( xml );
-  mDrawing.writeElement( xml );
+  if (!mVersion.isEmpty())
+    xml.writeAttribute("version", mVersion );
+  if (mCompatibility)
+    mCompatibility->writeElement( xml );
+  if (mDrawing)
+    mDrawing->writeElement( xml );
   xml.writeEndElement();
 }
 
-Eagle Eagle::parseFile( const QString &filename, bool *ok )
+Eagle *Eagle::parseFile( const QString &filename, bool *ok )
 {
   QFile file( filename );
   if ( !file.open( QIODevice::ReadOnly ) ) {
     qCritical() << "Unable to open file '" << filename << "'";
     if ( ok ) *ok = false;
-    return Eagle();
+    return nullptr;
   }
 
   QString errorMsg;
@@ -11171,18 +14161,18 @@ Eagle Eagle::parseFile( const QString &filename, bool *ok )
   if ( !doc.setContent( &file, false, &errorMsg, &errorLine, &errorCol ) ) {
     qCritical() << errorMsg << " at " << errorLine << "," << errorCol;
     if ( ok ) *ok = false;
-    return Eagle();
+    return nullptr;
   }
 
   bool documentOk;
-  Eagle c = parseElement( doc.documentElement(), &documentOk );
+  Eagle* c = parseElement( doc.documentElement(), &documentOk );
   if ( ok ) {
     *ok = documentOk;
   }
   return c;
 }
 
-Eagle Eagle::parseString( const QString &xml, bool *ok )
+Eagle *Eagle::parseString( const QString &xml, bool *ok )
 {
   QString errorMsg;
   int errorLine, errorCol;
@@ -11190,11 +14180,11 @@ Eagle Eagle::parseString( const QString &xml, bool *ok )
   if ( !doc.setContent( xml, false, &errorMsg, &errorLine, &errorCol ) ) {
     qCritical() << errorMsg << " at " << errorLine << "," << errorCol;
     if ( ok ) *ok = false;
-    return Eagle();
+    return nullptr;
   }
 
   bool documentOk;
-  Eagle c = parseElement( doc.documentElement(), &documentOk );
+  Eagle* c = parseElement( doc.documentElement(), &documentOk );
   if ( ok ) {
     *ok = documentOk;
   }

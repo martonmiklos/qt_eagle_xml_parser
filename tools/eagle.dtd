@@ -19,7 +19,7 @@
 <!ENTITY % Real              "CDATA"> <!-- a real number -->
 <!ENTITY % String            "CDATA"> <!-- a character string -->
 <!ENTITY % Bool              "(no | yes)">
-<!ENTITY % Coord             "%Real"> <!-- coordinates, given in millimeters -->
+<!ENTITY % Coord             "%Real;"> <!-- coordinates, given in millimeters -->
 <!ENTITY % Dimension         "%Real;"> <!-- dimensions, given in millimeters -->
 <!ENTITY % Layer             "%Int;"> <!-- layer number -->
 <!ENTITY % GridUnit          "(mic | mm | mil | inch)">
@@ -74,7 +74,7 @@
 
 <!ELEMENT drawing (settings?, grid?, layers, (library | schematic | board))>
 
-<!ELEMENT library (description?, packages?, symbols?, devicesets?)>
+<!ELEMENT library (description?, packages?, packages3d?, symbols?, devicesets?)>
 <!ATTLIST library
           name          %String;       #REQUIRED
           urn           %Urn;          ""
@@ -96,7 +96,7 @@
           dy            %Coord;        #REQUIRED
           >
 
-<!ELEMENT board (description?, fusionsync?, plain?, libraries?, attributes?, variantdefs?, classes?, designrules?, autorouter?, elements?, signals?, errors?)>
+<!ELEMENT board (description?, fusionsync?, plain?, libraries?, attributes?, variantdefs?, classes?, designrules?, autorouter?, elements?, signals?, mfgpreviewcolors?, errors?)>
 <!ATTLIST board
           limitedwidth  %Dimension;    #IMPLIED
           >
@@ -119,7 +119,7 @@
 <!ATTLIST package3d
           name          %String;       ""
           urn              %Urn;       #REQUIRED
-          type   %Package3dType;       ""
+          type   %Package3dType;       #REQUIRED
           library_version  %Int;       ""
           library_locally_modified %Bool; "no"
           >
@@ -173,6 +173,11 @@
           class         %Class;        "0"
           airwireshidden %Bool;        "no"
           >
+<!ELEMENT mfgpreviewcolor EMPTY>
+<!ATTLIST mfgpreviewcolor
+          name          %String;       #REQUIRED
+          color         %String;       #REQUIRED
+          >
 
 <!-- ### Basic objects #################################################### -->
 
@@ -193,8 +198,8 @@
 
 <!ELEMENT pinmapping (pinmap+)>
 <!ATTLIST pinmapping
-          isusermap     %Bool;          "yes"
-          iddevicewide  %Bool;          "yes"
+          isusermap     %Bool;         "no"
+          iddevicewide  %Bool;         "yes"
           spiceprefix   %String;       ""
           >
 
@@ -561,6 +566,7 @@
 <!ELEMENT sheets (sheet)*>
 <!ELEMENT layers (layer)*>
 <!ELEMENT packages (package)*>
+<!ELEMENT packages3d (package3d)*>
 <!ELEMENT symbols (symbol)*>
 <!ELEMENT devicesets (deviceset)*>
 <!ELEMENT gates (gate)*>
@@ -579,6 +585,7 @@
 <!ELEMENT autorouter (pass)*>
 <!ELEMENT elements (element)*>
 <!ELEMENT signals (signal)*>
+<!ELEMENT mfgpreviewcolors (mfgpreviewcolor)*>
 <!ELEMENT busses (bus)*>
 <!ELEMENT nets (net)*>
 
