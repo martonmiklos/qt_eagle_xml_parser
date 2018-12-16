@@ -4,6 +4,7 @@
 #include "eagle.h"
 
 #include <QLineF>
+#include <QPainterPath>
 #include <QRectF>
 #include <QString>
 
@@ -80,6 +81,8 @@ public:
                                   qreal interSectionKeepOutInMm,
                                   SeparationStartLineEnd startEnd = End1);
     static qreal wireAngle(const Wire & wire);
+private:
+    static QPainterPath smdToStopMaskPainterPath(const Smd &smd, qreal stopMaskPercentage);
 };
 
 #endif // UTILS_H

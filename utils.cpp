@@ -30,6 +30,24 @@ int EAGLE_Utils::layerIndexFromName(const QString &layerName, Eagle *design)
     return -1;
 }
 
+QPainterPath EAGLE_Utils::smdToStopMaskPainterPath(const Smd & smd, qreal stopMaskPercentage)
+{
+    QPainterPath ret;
+    ret.addRoundedRect(EAGLE_Utils::smdToQRectF(smd),
+                                 smd.roundness(),
+                                 smd.roundness(),
+                                 Qt::RelativeSize);
+
+    qreal rotation = smd.rot().mid(1).toInt();
+    QTransform transform;
+    transform.translate(smd.x(), smd.y());
+    transform.rotate(rotation);
+    transform.translate(-smd.x(), -smd.y());
+    transform.scale(1.0 + (stopMaskPercentage / 100.0),
+                    1.0 + (stopMaskPercentage / 100.0));
+    return transform.map(ret);
+}
+
 int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
                                               const Wire &wire,
                                               QPointF *internalPoint,
@@ -52,29 +70,15 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
     pen.setColor(Qt::red);
     painter.setPen(pen);
 
-    QPainterPath rectanglePath, wireContourPath;
-    rectanglePath.addRoundedRect(EAGLE_Utils::smdToQRectF(smd),
-                                 smd.roundness(),
-                                 smd.roundness(),
-                                 Qt::RelativeSize);
+    QPainterPath stopMaskPath = smdToStopMaskPainterPath(smd, stopMaskPercentage);
+    painter.drawPath(stopMaskPath);
 
-
-    qreal rotation = smd.rot().mid(1).toInt();
-    QTransform transform;
-    transform.translate(smd.x(), smd.y());
-    transform.rotate(rotation);
-    transform.translate(-smd.x(), -smd.y());
-    // TODO transform.scale((100.0 + stopMaskPercentage) / 100.0, (100.0 + stopMaskPercentage) / 100.0);
-    rectanglePath = transform.map(rectanglePath);
-    painter.drawPath(rectanglePath);
-
-
+    QPainterPath wireContourPath;
     wireContourPath.moveTo(wire.x1(), wire.y1());
     wireContourPath.lineTo(wire.x2(), wire.y2());
     painter.drawPath(wireContourPath);
 
     QPainterPath centerPath = wireContourPath;
-
 
     QTransform lineTransform;
 
@@ -136,16 +140,16 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
     painter.drawLine(0, 250, 0, -250);
 
     int intersectionCount = 0;
-    if (!rectanglePath.intersected(wireContourPath).isEmpty()) {
-        qWarning() << rectanglePath;
+    if (!stopMaskPath.intersected(wireContourPath).isEmpty()) {
+        qWarning() << stopMaskPath;
         QLineF centerLine = wire2QLine(wire);
         qreal centerLineAngle = centerLine.angle();
 
         qreal x = 0.0, y = 0.0;
-        for (int elementIndex = 0; elementIndex<rectanglePath.elementCount(); elementIndex++) {
+        for (int elementIndex = 0; elementIndex<stopMaskPath.elementCount(); elementIndex++) {
             if (intersectionCount > 1)
                 break;
-            QPainterPath::Element e = rectanglePath.elementAt(elementIndex);
+            QPainterPath::Element e = stopMaskPath.elementAt(elementIndex);
             switch (e.type) {
             case QPainterPath::MoveToElement:
                 x = e.x;
@@ -175,9 +179,9 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
                 int curveInterSectionCount = 0;
                 bool hasInterSection = GraphicsUtilities::lineIntersectsCurve(centerLine,
                                                                               QPointF(x, y),
-                                                                              QPointF(rectanglePath.elementAt(elementIndex+2).x, rectanglePath.elementAt(elementIndex+2).y),
+                                                                              QPointF(stopMaskPath.elementAt(elementIndex+2).x, stopMaskPath.elementAt(elementIndex+2).y),
                                                                               QPointF(e.x, e.y),
-                                                                              QPointF(rectanglePath.elementAt(elementIndex+1).x, rectanglePath.elementAt(elementIndex+1).y),
+                                                                              QPointF(stopMaskPath.elementAt(elementIndex+1).x, stopMaskPath.elementAt(elementIndex+1).y),
                                                                               intersectionPt1,
                                                                               intersectionPt1,
                                                                               &thirdInterSectionPt,
@@ -194,8 +198,8 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
                     }
                 }
                 elementIndex += 2;
-                x = rectanglePath.elementAt(elementIndex).x;
-                y = rectanglePath.elementAt(elementIndex).y;
+                x = stopMaskPath.elementAt(elementIndex).x;
+                y = stopMaskPath.elementAt(elementIndex).y;
                 break;
             }
             case QPainterPath::CurveToDataElement:
@@ -279,7 +283,7 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
     painter.end();
     QLabel *label = new QLabel(nullptr, Qt::Window);
     label->setPixmap(QPixmap::fromImage(image));
-    //label->show();
+    label->show();
 
     return intersectionCount;
 }
