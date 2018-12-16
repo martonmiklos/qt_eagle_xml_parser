@@ -9,8 +9,11 @@
 
 Layer::Layer()
 {
+  mNumber = 0;
   mNumber_set = false;
+  mColor = 0;
   mColor_set = false;
+  mFill = 0;
   mFill_set = false;
   mVisible = Visible_Invalid;
   mActive = Active_Invalid;
@@ -173,7 +176,7 @@ Layer *Layer::parseElement( const QDomElement &element, bool *ok )
     result->setFill( element.attribute( "fill" ).toInt() );
   if (element.hasAttribute("visible"))  {
     VisibleEnum visible = visibleEnumFromString( element.attribute( "visible" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "visible" ) << "\" in the \"visible\" element";
       return nullptr;
     } else {
@@ -184,7 +187,7 @@ Layer *Layer::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("active"))  {
     ActiveEnum active = activeEnumFromString( element.attribute( "active" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "active" ) << "\" in the \"active\" element";
       return nullptr;
     } else {
@@ -280,12 +283,15 @@ void Layers::writeElement( QXmlStreamWriter &xml ) const
 
 Grid::Grid()
 {
+  mDistance = 0.0;
   mDistance_set = false;
   mUnitdist = Unitdist_Invalid;
   mUnit = Unit_Invalid;
   mStyle = Style_Invalid;
+  mMultiple = 0;
   mMultiple_set = false;
   mDisplay = Display_Invalid;
+  mAltdistance = 0.0;
   mAltdistance_set = false;
   mAltunitdist = Altunitdist_Invalid;
   mAltunit = Altunit_Invalid;
@@ -609,7 +615,7 @@ Grid *Grid::parseElement( const QDomElement &element, bool *ok )
     result->setDistance( element.attribute( "distance" ).toDouble() );
   if (element.hasAttribute("unitdist"))  {
     UnitdistEnum unitdist = unitdistEnumFromString( element.attribute( "unitdist" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "unitdist" ) << "\" in the \"unitdist\" element";
       return nullptr;
     } else {
@@ -620,7 +626,7 @@ Grid *Grid::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("unit"))  {
     UnitEnum unit = unitEnumFromString( element.attribute( "unit" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "unit" ) << "\" in the \"unit\" element";
       return nullptr;
     } else {
@@ -631,7 +637,7 @@ Grid *Grid::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("style"))  {
     StyleEnum style = styleEnumFromString( element.attribute( "style" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "style" ) << "\" in the \"style\" element";
       return nullptr;
     } else {
@@ -644,7 +650,7 @@ Grid *Grid::parseElement( const QDomElement &element, bool *ok )
     result->setMultiple( element.attribute( "multiple" ).toInt() );
   if (element.hasAttribute("display"))  {
     DisplayEnum display = displayEnumFromString( element.attribute( "display" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "display" ) << "\" in the \"display\" element";
       return nullptr;
     } else {
@@ -657,7 +663,7 @@ Grid *Grid::parseElement( const QDomElement &element, bool *ok )
     result->setAltdistance( element.attribute( "altdistance" ).toDouble() );
   if (element.hasAttribute("altunitdist"))  {
     AltunitdistEnum altunitdist = altunitdistEnumFromString( element.attribute( "altunitdist" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "altunitdist" ) << "\" in the \"altunitdist\" element";
       return nullptr;
     } else {
@@ -668,7 +674,7 @@ Grid *Grid::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("altunit"))  {
     AltunitEnum altunit = altunitEnumFromString( element.attribute( "altunit" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "altunit" ) << "\" in the \"altunit\" element";
       return nullptr;
     } else {
@@ -844,7 +850,7 @@ Setting *Setting::parseElement( const QDomElement &element, bool *ok )
 
   if (element.hasAttribute("alwaysvectorfont"))  {
     AlwaysvectorfontEnum alwaysvectorfont = alwaysvectorfontEnumFromString( element.attribute( "alwaysvectorfont" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "alwaysvectorfont" ) << "\" in the \"alwaysvectorfont\" element";
       return nullptr;
     } else {
@@ -855,7 +861,7 @@ Setting *Setting::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("verticaltext"))  {
     VerticaltextEnum verticaltext = verticaltextEnumFromString( element.attribute( "verticaltext" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "verticaltext" ) << "\" in the \"verticaltext\" element";
       return nullptr;
     } else {
@@ -866,7 +872,7 @@ Setting *Setting::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("keepoldvectorfont"))  {
     KeepoldvectorfontEnum keepoldvectorfont = keepoldvectorfontEnumFromString( element.attribute( "keepoldvectorfont" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "keepoldvectorfont" ) << "\" in the \"keepoldvectorfont\" element";
       return nullptr;
     } else {
@@ -1073,9 +1079,13 @@ void Mfgpreviewcolors::writeElement( QXmlStreamWriter &xml ) const
 
 Via::Via()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mDrill = 0.0;
   mDrill_set = false;
+  mDiameter = 0.0;
   mDiameter_set = false;
   mShape = Shape_Invalid;
   mAlwaysstop = Alwaysstop_Invalid;
@@ -1259,7 +1269,7 @@ Via *Via::parseElement( const QDomElement &element, bool *ok )
     result->setDiameter( element.attribute( "diameter" ).toDouble() );
   if (element.hasAttribute("shape"))  {
     ShapeEnum shape = shapeEnumFromString( element.attribute( "shape" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "shape" ) << "\" in the \"shape\" element";
       return nullptr;
     } else {
@@ -1270,7 +1280,7 @@ Via *Via::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("alwaysstop"))  {
     AlwaysstopEnum alwaysstop = alwaysstopEnumFromString( element.attribute( "alwaysstop" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "alwaysstop" ) << "\" in the \"alwaysstop\" element";
       return nullptr;
     } else {
@@ -1396,7 +1406,7 @@ Contactref *Contactref::parseElement( const QDomElement &element, bool *ok )
   result->setPad( element.attribute( "pad" ) );
   if (element.hasAttribute("route"))  {
     RouteEnum route = routeEnumFromString( element.attribute( "route" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "route" ) << "\" in the \"route\" element";
       return nullptr;
     } else {
@@ -1428,8 +1438,11 @@ void Contactref::writeElement( QXmlStreamWriter &xml ) const
 
 Vertex::Vertex()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mCurve = 0.0;
   mCurve_set = false;
 }
 
@@ -1521,13 +1534,18 @@ void Vertex::writeElement( QXmlStreamWriter &xml ) const
 
 Polygon::Polygon()
 {
+  mWidth = 0.0;
   mWidth_set = false;
+  mLayer = 0;
   mLayer_set = false;
+  mSpacing = 0.0;
   mSpacing_set = false;
   mPour = Pour_Invalid;
+  mIsolate = 0.0;
   mIsolate_set = false;
   mOrphans = Orphans_Invalid;
   mThermals = Thermals_Invalid;
+  mRank = 0;
   mRank_set = false;
 }
 
@@ -1775,7 +1793,7 @@ Polygon *Polygon::parseElement( const QDomElement &element, bool *ok )
     result->setSpacing( element.attribute( "spacing" ).toDouble() );
   if (element.hasAttribute("pour"))  {
     PourEnum pour = pourEnumFromString( element.attribute( "pour" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "pour" ) << "\" in the \"pour\" element";
       return nullptr;
     } else {
@@ -1788,7 +1806,7 @@ Polygon *Polygon::parseElement( const QDomElement &element, bool *ok )
     result->setIsolate( element.attribute( "isolate" ).toDouble() );
   if (element.hasAttribute("orphans"))  {
     OrphansEnum orphans = orphansEnumFromString( element.attribute( "orphans" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "orphans" ) << "\" in the \"orphans\" element";
       return nullptr;
     } else {
@@ -1799,7 +1817,7 @@ Polygon *Polygon::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("thermals"))  {
     ThermalsEnum thermals = thermalsEnumFromString( element.attribute( "thermals" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "thermals" ) << "\" in the \"thermals\" element";
       return nullptr;
     } else {
@@ -1844,13 +1862,20 @@ void Polygon::writeElement( QXmlStreamWriter &xml ) const
 
 Wire::Wire()
 {
+  mX1 = 0.0;
   mX1_set = false;
+  mY1 = 0.0;
   mY1_set = false;
+  mX2 = 0.0;
   mX2_set = false;
+  mY2 = 0.0;
   mY2_set = false;
+  mWidth = 0.0;
   mWidth_set = false;
+  mLayer = 0;
   mLayer_set = false;
   mStyle = Style_Invalid;
+  mCurve = 0.0;
   mCurve_set = false;
   mCap = Cap_Invalid;
 }
@@ -2088,7 +2113,7 @@ Wire *Wire::parseElement( const QDomElement &element, bool *ok )
   result->setExtent( element.attribute( "extent" ) );
   if (element.hasAttribute("style"))  {
     StyleEnum style = styleEnumFromString( element.attribute( "style" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "style" ) << "\" in the \"style\" element";
       return nullptr;
     } else {
@@ -2101,7 +2126,7 @@ Wire *Wire::parseElement( const QDomElement &element, bool *ok )
     result->setCurve( element.attribute( "curve" ).toDouble() );
   if (element.hasAttribute("cap"))  {
     CapEnum cap = capEnumFromString( element.attribute( "cap" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "cap" ) << "\" in the \"cap\" element";
       return nullptr;
     } else {
@@ -2144,6 +2169,7 @@ void Wire::writeElement( QXmlStreamWriter &xml ) const
 
 Signal::Signal()
 {
+  mClass = 0;
   mClass_set = false;
   mAirwireshidden = Airwireshidden_Invalid;
 }
@@ -2316,7 +2342,7 @@ Signal *Signal::parseElement( const QDomElement &element, bool *ok )
     result->setClass( element.attribute( "class" ).toInt() );
   if (element.hasAttribute("airwireshidden"))  {
     AirwireshiddenEnum airwireshidden = airwireshiddenEnumFromString( element.attribute( "airwireshidden" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "airwireshidden" ) << "\" in the \"airwireshidden\" element";
       return nullptr;
     } else {
@@ -2412,10 +2438,8 @@ void Signals::writeElement( QXmlStreamWriter &xml ) const
   if ( !mSignalList.isEmpty() ) {
     xml.writeStartElement( "signals" );
     foreach( Signal* e, mSignalList ) {
-      if (e) {
-          qWarning() << e->name();
+      if (e)
         e->writeElement( xml );
-      }
     }
     xml.writeEndElement();
   }
@@ -2424,11 +2448,16 @@ void Signals::writeElement( QXmlStreamWriter &xml ) const
 
 Attribute::Attribute()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mSize = 0.0;
   mSize_set = false;
+  mLayer = 0;
   mLayer_set = false;
   mFont = Font_Invalid;
+  mRatio = 0;
   mRatio_set = false;
   mDisplay = Display_Invalid;
   mConstant = Constant_Invalid;
@@ -2753,7 +2782,7 @@ Attribute *Attribute::parseElement( const QDomElement &element, bool *ok )
     result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("font"))  {
     FontEnum font = fontEnumFromString( element.attribute( "font" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "font" ) << "\" in the \"font\" element";
       return nullptr;
     } else {
@@ -2767,7 +2796,7 @@ Attribute *Attribute::parseElement( const QDomElement &element, bool *ok )
   result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("display"))  {
     DisplayEnum display = displayEnumFromString( element.attribute( "display" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "display" ) << "\" in the \"display\" element";
       return nullptr;
     } else {
@@ -2778,7 +2807,7 @@ Attribute *Attribute::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("constant"))  {
     ConstantEnum constant = constantEnumFromString( element.attribute( "constant" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "constant" ) << "\" in the \"constant\" element";
       return nullptr;
     } else {
@@ -2789,7 +2818,7 @@ Attribute *Attribute::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("align"))  {
     AlignEnum align = alignEnumFromString( element.attribute( "align" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "align" ) << "\" in the \"align\" element";
       return nullptr;
     } else {
@@ -2924,7 +2953,7 @@ Variant *Variant::parseElement( const QDomElement &element, bool *ok )
   result->setName( element.attribute( "name" ) );
   if (element.hasAttribute("populate"))  {
     PopulateEnum populate = populateEnumFromString( element.attribute( "populate" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "populate" ) << "\" in the \"populate\" element";
       return nullptr;
     } else {
@@ -2957,7 +2986,9 @@ void Variant::writeElement( QXmlStreamWriter &xml ) const
 
 Element::Element()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
   mLocked = Locked_Invalid;
   mPopulate = Populate_Invalid;
@@ -3251,7 +3282,7 @@ Element *Element::parseElement( const QDomElement &element, bool *ok )
     result->setY( element.attribute( "y" ).toDouble() );
   if (element.hasAttribute("locked"))  {
     LockedEnum locked = lockedEnumFromString( element.attribute( "locked" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "locked" ) << "\" in the \"locked\" element";
       return nullptr;
     } else {
@@ -3262,7 +3293,7 @@ Element *Element::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("populate"))  {
     PopulateEnum populate = populateEnumFromString( element.attribute( "populate" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "populate" ) << "\" in the \"populate\" element";
       return nullptr;
     } else {
@@ -3273,7 +3304,7 @@ Element *Element::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("smashed"))  {
     SmashedEnum smashed = smashedEnumFromString( element.attribute( "smashed" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "smashed" ) << "\" in the \"smashed\" element";
       return nullptr;
     } else {
@@ -3550,7 +3581,7 @@ Pass *Pass::parseElement( const QDomElement &element, bool *ok )
   result->setRefer( element.attribute( "refer" ) );
   if (element.hasAttribute("active"))  {
     ActiveEnum active = activeEnumFromString( element.attribute( "active" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "active" ) << "\" in the \"active\" element";
       return nullptr;
     } else {
@@ -3905,13 +3936,19 @@ void Fusionsync::writeElement( QXmlStreamWriter &xml ) const
 
 Text::Text()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mSize = 0.0;
   mSize_set = false;
+  mLayer = 0;
   mLayer_set = false;
   mFont = Font_Invalid;
+  mRatio = 0;
   mRatio_set = false;
   mAlign = Align_Invalid;
+  mDistance = 0;
   mDistance_set = false;
 }
 
@@ -4156,7 +4193,7 @@ Text *Text::parseElement( const QDomElement &element, bool *ok )
     result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("font"))  {
     FontEnum font = fontEnumFromString( element.attribute( "font" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "font" ) << "\" in the \"font\" element";
       return nullptr;
     } else {
@@ -4170,7 +4207,7 @@ Text *Text::parseElement( const QDomElement &element, bool *ok )
   result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("align"))  {
     AlignEnum align = alignEnumFromString( element.attribute( "align" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "align" ) << "\" in the \"align\" element";
       return nullptr;
     } else {
@@ -4216,21 +4253,35 @@ void Text::writeElement( QXmlStreamWriter &xml ) const
 
 Dimension::Dimension()
 {
+  mX1 = 0.0;
   mX1_set = false;
+  mY1 = 0.0;
   mY1_set = false;
+  mX2 = 0.0;
   mX2_set = false;
+  mY2 = 0.0;
   mY2_set = false;
+  mX3 = 0.0;
   mX3_set = false;
+  mY3 = 0.0;
   mY3_set = false;
+  mLayer = 0;
   mLayer_set = false;
   mDtype = Dtype_Invalid;
+  mWidth = 0.0;
   mWidth_set = false;
+  mExtwidth = 0.0;
   mExtwidth_set = false;
+  mExtlength = 0.0;
   mExtlength_set = false;
+  mExtoffset = 0.0;
   mExtoffset_set = false;
+  mTextsize = 0.0;
   mTextsize_set = false;
+  mTextratio = 0;
   mTextratio_set = false;
   mUnit = Unit_Invalid;
+  mPrecision = 0;
   mPrecision_set = false;
   mVisible = Visible_Invalid;
 }
@@ -4621,7 +4672,7 @@ Dimension *Dimension::parseElement( const QDomElement &element, bool *ok )
     result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("dtype"))  {
     DtypeEnum dtype = dtypeEnumFromString( element.attribute( "dtype" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "dtype" ) << "\" in the \"dtype\" element";
       return nullptr;
     } else {
@@ -4644,7 +4695,7 @@ Dimension *Dimension::parseElement( const QDomElement &element, bool *ok )
     result->setTextratio( element.attribute( "textratio" ).toInt() );
   if (element.hasAttribute("unit"))  {
     UnitEnum unit = unitEnumFromString( element.attribute( "unit" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "unit" ) << "\" in the \"unit\" element";
       return nullptr;
     } else {
@@ -4657,7 +4708,7 @@ Dimension *Dimension::parseElement( const QDomElement &element, bool *ok )
     result->setPrecision( element.attribute( "precision" ).toInt() );
   if (element.hasAttribute("visible"))  {
     VisibleEnum visible = visibleEnumFromString( element.attribute( "visible" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "visible" ) << "\" in the \"visible\" element";
       return nullptr;
     } else {
@@ -4714,10 +4765,15 @@ void Dimension::writeElement( QXmlStreamWriter &xml ) const
 
 Circle::Circle()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mRadius = 0.0;
   mRadius_set = false;
+  mWidth = 0.0;
   mWidth_set = false;
+  mLayer = 0;
   mLayer_set = false;
 }
 
@@ -4849,10 +4905,15 @@ void Circle::writeElement( QXmlStreamWriter &xml ) const
 
 Rectangle::Rectangle()
 {
+  mX1 = 0.0;
   mX1_set = false;
+  mY1 = 0.0;
   mY1_set = false;
+  mX2 = 0.0;
   mX2_set = false;
+  mY2 = 0.0;
   mY2_set = false;
+  mLayer = 0;
   mLayer_set = false;
 }
 
@@ -4997,12 +5058,19 @@ void Rectangle::writeElement( QXmlStreamWriter &xml ) const
 
 Frame::Frame()
 {
+  mX1 = 0.0;
   mX1_set = false;
+  mY1 = 0.0;
   mY1_set = false;
+  mX2 = 0.0;
   mX2_set = false;
+  mY2 = 0.0;
   mY2_set = false;
+  mColumns = 0;
   mColumns_set = false;
+  mRows = 0;
   mRows_set = false;
+  mLayer = 0;
   mLayer_set = false;
   mBorderLeft = BorderLeft_Invalid;
   mBorderTop = BorderTop_Invalid;
@@ -5304,7 +5372,7 @@ Frame *Frame::parseElement( const QDomElement &element, bool *ok )
     result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("border-left"))  {
     BorderLeftEnum border_left = borderLeftEnumFromString( element.attribute( "border-left" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "border-left" ) << "\" in the \"border-left\" element";
       return nullptr;
     } else {
@@ -5315,7 +5383,7 @@ Frame *Frame::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("border-top"))  {
     BorderTopEnum border_top = borderTopEnumFromString( element.attribute( "border-top" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "border-top" ) << "\" in the \"border-top\" element";
       return nullptr;
     } else {
@@ -5326,7 +5394,7 @@ Frame *Frame::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("border-right"))  {
     BorderRightEnum border_right = borderRightEnumFromString( element.attribute( "border-right" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "border-right" ) << "\" in the \"border-right\" element";
       return nullptr;
     } else {
@@ -5337,7 +5405,7 @@ Frame *Frame::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("border-bottom"))  {
     BorderBottomEnum border_bottom = borderBottomEnumFromString( element.attribute( "border-bottom" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "border-bottom" ) << "\" in the \"border-bottom\" element";
       return nullptr;
     } else {
@@ -5382,8 +5450,11 @@ void Frame::writeElement( QXmlStreamWriter &xml ) const
 
 Hole::Hole()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mDrill = 0.0;
   mDrill_set = false;
 }
 
@@ -5704,9 +5775,13 @@ void Plain::writeElement( QXmlStreamWriter &xml ) const
 
 Pad::Pad()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mDrill = 0.0;
   mDrill_set = false;
+  mDiameter = 0.0;
   mDiameter_set = false;
   mShape = Shape_Invalid;
   mStop = Stop_Invalid;
@@ -5984,7 +6059,7 @@ Pad *Pad::parseElement( const QDomElement &element, bool *ok )
     result->setDiameter( element.attribute( "diameter" ).toDouble() );
   if (element.hasAttribute("shape"))  {
     ShapeEnum shape = shapeEnumFromString( element.attribute( "shape" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "shape" ) << "\" in the \"shape\" element";
       return nullptr;
     } else {
@@ -5996,7 +6071,7 @@ Pad *Pad::parseElement( const QDomElement &element, bool *ok )
   result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("stop"))  {
     StopEnum stop = stopEnumFromString( element.attribute( "stop" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "stop" ) << "\" in the \"stop\" element";
       return nullptr;
     } else {
@@ -6007,7 +6082,7 @@ Pad *Pad::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("thermals"))  {
     ThermalsEnum thermals = thermalsEnumFromString( element.attribute( "thermals" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "thermals" ) << "\" in the \"thermals\" element";
       return nullptr;
     } else {
@@ -6018,7 +6093,7 @@ Pad *Pad::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("first"))  {
     FirstEnum first = firstEnumFromString( element.attribute( "first" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "first" ) << "\" in the \"first\" element";
       return nullptr;
     } else {
@@ -6061,11 +6136,17 @@ void Pad::writeElement( QXmlStreamWriter &xml ) const
 
 Smd::Smd()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mDx = 0.0;
   mDx_set = false;
+  mDy = 0.0;
   mDy_set = false;
+  mLayer = 0;
   mLayer_set = false;
+  mRoundness = 0;
   mRoundness_set = false;
   mStop = Stop_Invalid;
   mThermals = Thermals_Invalid;
@@ -6332,7 +6413,7 @@ Smd *Smd::parseElement( const QDomElement &element, bool *ok )
   result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("stop"))  {
     StopEnum stop = stopEnumFromString( element.attribute( "stop" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "stop" ) << "\" in the \"stop\" element";
       return nullptr;
     } else {
@@ -6343,7 +6424,7 @@ Smd *Smd::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("thermals"))  {
     ThermalsEnum thermals = thermalsEnumFromString( element.attribute( "thermals" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "thermals" ) << "\" in the \"thermals\" element";
       return nullptr;
     } else {
@@ -6354,7 +6435,7 @@ Smd *Smd::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("cream"))  {
     CreamEnum cream = creamEnumFromString( element.attribute( "cream" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "cream" ) << "\" in the \"cream\" element";
       return nullptr;
     } else {
@@ -6400,6 +6481,7 @@ void Smd::writeElement( QXmlStreamWriter &xml ) const
 Package::Package()
 {
   mLocallyModified = LocallyModified_Invalid;
+  mLibraryVersion = 0;
   mLibraryVersion_set = false;
   mLibraryLocallyModified = LibraryLocallyModified_Invalid;
   mDescription = nullptr;
@@ -6755,7 +6837,7 @@ Package *Package::parseElement( const QDomElement &element, bool *ok )
   result->setUrn( element.attribute( "urn" ) );
   if (element.hasAttribute("locally_modified"))  {
     LocallyModifiedEnum locally_modified = locallyModifiedEnumFromString( element.attribute( "locally_modified" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "locally_modified" ) << "\" in the \"locally_modified\" element";
       return nullptr;
     } else {
@@ -6768,7 +6850,7 @@ Package *Package::parseElement( const QDomElement &element, bool *ok )
     result->setLibraryVersion( element.attribute( "library_version" ).toInt() );
   if (element.hasAttribute("library_locally_modified"))  {
     LibraryLocallyModifiedEnum library_locally_modified = libraryLocallyModifiedEnumFromString( element.attribute( "library_locally_modified" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "library_locally_modified" ) << "\" in the \"library_locally_modified\" element";
       return nullptr;
     } else {
@@ -7009,6 +7091,7 @@ void Packageinstances::writeElement( QXmlStreamWriter &xml ) const
 Package3d::Package3d()
 {
   mType = Type_Invalid;
+  mLibraryVersion = 0;
   mLibraryVersion_set = false;
   mLibraryLocallyModified = LibraryLocallyModified_Invalid;
   mDescription = nullptr;
@@ -7179,7 +7262,7 @@ Package3d *Package3d::parseElement( const QDomElement &element, bool *ok )
   result->setName( element.attribute( "name" ) );
   result->setUrn( element.attribute( "urn" ) );
   TypeEnum type = typeEnumFromString( element.attribute( "type" ), ok  );
-  if (ok && *ok == false) {
+  if (ok && !(*ok)) {
     qCritical() << "Invalid string: \"" << element.attribute( "type" ) << "\" in the \"type\" element";
     return nullptr;
   } else {
@@ -7189,7 +7272,7 @@ Package3d *Package3d::parseElement( const QDomElement &element, bool *ok )
     result->setLibraryVersion( element.attribute( "library_version" ).toInt() );
   if (element.hasAttribute("library_locally_modified"))  {
     LibraryLocallyModifiedEnum library_locally_modified = libraryLocallyModifiedEnumFromString( element.attribute( "library_locally_modified" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "library_locally_modified" ) << "\" in the \"library_locally_modified\" element";
       return nullptr;
     } else {
@@ -7287,12 +7370,15 @@ void Packages3d::writeElement( QXmlStreamWriter &xml ) const
 
 Pin::Pin()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
   mVisible = Visible_Invalid;
   mLength = Length_Invalid;
   mDirection = Direction_Invalid;
   mFunction = Function_Invalid;
+  mSwaplevel = 0;
   mSwaplevel_set = false;
 }
 
@@ -7576,7 +7662,7 @@ Pin *Pin::parseElement( const QDomElement &element, bool *ok )
     result->setY( element.attribute( "y" ).toDouble() );
   if (element.hasAttribute("visible"))  {
     VisibleEnum visible = visibleEnumFromString( element.attribute( "visible" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "visible" ) << "\" in the \"visible\" element";
       return nullptr;
     } else {
@@ -7587,7 +7673,7 @@ Pin *Pin::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("length"))  {
     LengthEnum length = lengthEnumFromString( element.attribute( "length" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "length" ) << "\" in the \"length\" element";
       return nullptr;
     } else {
@@ -7598,7 +7684,7 @@ Pin *Pin::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("direction"))  {
     DirectionEnum direction = directionEnumFromString( element.attribute( "direction" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "direction" ) << "\" in the \"direction\" element";
       return nullptr;
     } else {
@@ -7609,7 +7695,7 @@ Pin *Pin::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("function"))  {
     FunctionEnum function = functionEnumFromString( element.attribute( "function" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "function" ) << "\" in the \"function\" element";
       return nullptr;
     } else {
@@ -7654,6 +7740,7 @@ void Pin::writeElement( QXmlStreamWriter &xml ) const
 Symbol::Symbol()
 {
   mLocallyModified = LocallyModified_Invalid;
+  mLibraryVersion = 0;
   mLibraryVersion_set = false;
   mLibraryLocallyModified = LibraryLocallyModified_Invalid;
   mDescription = nullptr;
@@ -7969,7 +8056,7 @@ Symbol *Symbol::parseElement( const QDomElement &element, bool *ok )
   result->setUrn( element.attribute( "urn" ) );
   if (element.hasAttribute("locally_modified"))  {
     LocallyModifiedEnum locally_modified = locallyModifiedEnumFromString( element.attribute( "locally_modified" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "locally_modified" ) << "\" in the \"locally_modified\" element";
       return nullptr;
     } else {
@@ -7982,7 +8069,7 @@ Symbol *Symbol::parseElement( const QDomElement &element, bool *ok )
     result->setLibraryVersion( element.attribute( "library_version" ).toInt() );
   if (element.hasAttribute("library_locally_modified"))  {
     LibraryLocallyModifiedEnum library_locally_modified = libraryLocallyModifiedEnumFromString( element.attribute( "library_locally_modified" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "library_locally_modified" ) << "\" in the \"library_locally_modified\" element";
       return nullptr;
     } else {
@@ -8110,9 +8197,12 @@ void Symbols::writeElement( QXmlStreamWriter &xml ) const
 
 Gate::Gate()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
   mAddlevel = Addlevel_Invalid;
+  mSwaplevel = 0;
   mSwaplevel_set = false;
 }
 
@@ -8253,7 +8343,7 @@ Gate *Gate::parseElement( const QDomElement &element, bool *ok )
     result->setY( element.attribute( "y" ).toDouble() );
   if (element.hasAttribute("addlevel"))  {
     AddlevelEnum addlevel = addlevelEnumFromString( element.attribute( "addlevel" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "addlevel" ) << "\" in the \"addlevel\" element";
       return nullptr;
     } else {
@@ -8441,7 +8531,7 @@ Connect *Connect::parseElement( const QDomElement &element, bool *ok )
   result->setPad( element.attribute( "pad" ) );
   if (element.hasAttribute("route"))  {
     RouteEnum route = routeEnumFromString( element.attribute( "route" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "route" ) << "\" in the \"route\" element";
       return nullptr;
     } else {
@@ -9146,7 +9236,7 @@ Pinmapping *Pinmapping::parseElement( const QDomElement &element, bool *ok )
 
   if (element.hasAttribute("isusermap"))  {
     IsusermapEnum isusermap = isusermapEnumFromString( element.attribute( "isusermap" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "isusermap" ) << "\" in the \"isusermap\" element";
       return nullptr;
     } else {
@@ -9157,7 +9247,7 @@ Pinmapping *Pinmapping::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("iddevicewide"))  {
     IddevicewideEnum iddevicewide = iddevicewideEnumFromString( element.attribute( "iddevicewide" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "iddevicewide" ) << "\" in the \"iddevicewide\" element";
       return nullptr;
     } else {
@@ -9321,6 +9411,7 @@ Deviceset::Deviceset()
 {
   mLocallyModified = LocallyModified_Invalid;
   mUservalue = Uservalue_Invalid;
+  mLibraryVersion = 0;
   mLibraryVersion_set = false;
   mLibraryLocallyModified = LibraryLocallyModified_Invalid;
   mDescription = nullptr;
@@ -9572,7 +9663,7 @@ Deviceset *Deviceset::parseElement( const QDomElement &element, bool *ok )
   result->setUrn( element.attribute( "urn" ) );
   if (element.hasAttribute("locally_modified"))  {
     LocallyModifiedEnum locally_modified = locallyModifiedEnumFromString( element.attribute( "locally_modified" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "locally_modified" ) << "\" in the \"locally_modified\" element";
       return nullptr;
     } else {
@@ -9584,7 +9675,7 @@ Deviceset *Deviceset::parseElement( const QDomElement &element, bool *ok )
   result->setPrefix( element.attribute( "prefix" ) );
   if (element.hasAttribute("uservalue"))  {
     UservalueEnum uservalue = uservalueEnumFromString( element.attribute( "uservalue" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "uservalue" ) << "\" in the \"uservalue\" element";
       return nullptr;
     } else {
@@ -9597,7 +9688,7 @@ Deviceset *Deviceset::parseElement( const QDomElement &element, bool *ok )
     result->setLibraryVersion( element.attribute( "library_version" ).toInt() );
   if (element.hasAttribute("library_locally_modified"))  {
     LibraryLocallyModifiedEnum library_locally_modified = libraryLocallyModifiedEnumFromString( element.attribute( "library_locally_modified" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "library_locally_modified" ) << "\" in the \"library_locally_modified\" element";
       return nullptr;
     } else {
@@ -10044,7 +10135,7 @@ Variantdef *Variantdef::parseElement( const QDomElement &element, bool *ok )
   result->setName( element.attribute( "name" ) );
   if (element.hasAttribute("current"))  {
     CurrentEnum current = currentEnumFromString( element.attribute( "current" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "current" ) << "\" in the \"current\" element";
       return nullptr;
     } else {
@@ -10132,7 +10223,9 @@ void Variantdefs::writeElement( QXmlStreamWriter &xml ) const
 
 Clearance::Clearance()
 {
+  mClass = 0;
   mClass_set = false;
+  mValue = 0.0;
   mValue_set = false;
 }
 
@@ -10204,8 +10297,11 @@ void Clearance::writeElement( QXmlStreamWriter &xml ) const
 
 Class::Class()
 {
+  mNumber = 0;
   mNumber_set = false;
+  mWidth = 0.0;
   mWidth_set = false;
+  mDrill = 0.0;
   mDrill_set = false;
 }
 
@@ -10504,6 +10600,7 @@ void Errors::writeElement( QXmlStreamWriter &xml ) const
 
 Board::Board()
 {
+  mLimitedwidth = 0.0;
   mLimitedwidth_set = false;
   mDescription = nullptr;
   mFusionsync = nullptr;
@@ -10919,7 +11016,9 @@ void Portref::writeElement( QXmlStreamWriter &xml ) const
 
 Junction::Junction()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
 }
 
@@ -10991,11 +11090,16 @@ void Junction::writeElement( QXmlStreamWriter &xml ) const
 
 Label::Label()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mSize = 0.0;
   mSize_set = false;
+  mLayer = 0;
   mLayer_set = false;
   mFont = Font_Invalid;
+  mRatio = 0;
   mRatio_set = false;
   mXref = Xref_Invalid;
   mAlign = Align_Invalid;
@@ -11253,7 +11357,7 @@ Label *Label::parseElement( const QDomElement &element, bool *ok )
     result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("font"))  {
     FontEnum font = fontEnumFromString( element.attribute( "font" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "font" ) << "\" in the \"font\" element";
       return nullptr;
     } else {
@@ -11267,7 +11371,7 @@ Label *Label::parseElement( const QDomElement &element, bool *ok )
   result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("xref"))  {
     XrefEnum xref = xrefEnumFromString( element.attribute( "xref" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "xref" ) << "\" in the \"xref\" element";
       return nullptr;
     } else {
@@ -11278,7 +11382,7 @@ Label *Label::parseElement( const QDomElement &element, bool *ok )
   }
   if (element.hasAttribute("align"))  {
     AlignEnum align = alignEnumFromString( element.attribute( "align" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "align" ) << "\" in the \"align\" element";
       return nullptr;
     } else {
@@ -11319,11 +11423,16 @@ void Label::writeElement( QXmlStreamWriter &xml ) const
 
 Probe::Probe()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mSize = 0.0;
   mSize_set = false;
+  mLayer = 0;
   mLayer_set = false;
   mFont = Font_Invalid;
+  mRatio = 0;
   mRatio_set = false;
   mXref = Xref_Invalid;
 }
@@ -11521,7 +11630,7 @@ Probe *Probe::parseElement( const QDomElement &element, bool *ok )
     result->setLayer( element.attribute( "layer" ).toInt() );
   if (element.hasAttribute("font"))  {
     FontEnum font = fontEnumFromString( element.attribute( "font" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "font" ) << "\" in the \"font\" element";
       return nullptr;
     } else {
@@ -11535,7 +11644,7 @@ Probe *Probe::parseElement( const QDomElement &element, bool *ok )
   result->setRot( element.attribute( "rot" ) );
   if (element.hasAttribute("xref"))  {
     XrefEnum xref = xrefEnumFromString( element.attribute( "xref" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "xref" ) << "\" in the \"xref\" element";
       return nullptr;
     } else {
@@ -11755,6 +11864,7 @@ void Segment::writeElement( QXmlStreamWriter &xml ) const
 
 Net::Net()
 {
+  mClass = 0;
   mClass_set = false;
 }
 
@@ -12042,7 +12152,9 @@ void Busses::writeElement( QXmlStreamWriter &xml ) const
 
 Instance::Instance()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
   mSmashed = Smashed_Invalid;
 }
@@ -12194,7 +12306,7 @@ Instance *Instance::parseElement( const QDomElement &element, bool *ok )
     result->setY( element.attribute( "y" ).toDouble() );
   if (element.hasAttribute("smashed"))  {
     SmashedEnum smashed = smashedEnumFromString( element.attribute( "smashed" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "smashed" ) << "\" in the \"smashed\" element";
       return nullptr;
     } else {
@@ -12295,8 +12407,11 @@ void Instances::writeElement( QXmlStreamWriter &xml ) const
 
 Moduleinst::Moduleinst()
 {
+  mX = 0.0;
   mX_set = false;
+  mY = 0.0;
   mY_set = false;
+  mOffset = 0;
   mOffset_set = false;
   mSmashed = Smashed_Invalid;
 }
@@ -12477,7 +12592,7 @@ Moduleinst *Moduleinst::parseElement( const QDomElement &element, bool *ok )
     result->setOffset( element.attribute( "offset" ).toInt() );
   if (element.hasAttribute("smashed"))  {
     SmashedEnum smashed = smashedEnumFromString( element.attribute( "smashed" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "smashed" ) << "\" in the \"smashed\" element";
       return nullptr;
     } else {
@@ -13052,7 +13167,9 @@ void Parts::writeElement( QXmlStreamWriter &xml ) const
 
 Port::Port()
 {
+  mSide = 0;
   mSide_set = false;
+  mCoord = 0.0;
   mCoord_set = false;
   mDirection = Direction_Invalid;
 }
@@ -13176,7 +13293,7 @@ Port *Port::parseElement( const QDomElement &element, bool *ok )
     result->setCoord( element.attribute( "coord" ).toDouble() );
   if (element.hasAttribute("direction"))  {
     DirectionEnum direction = directionEnumFromString( element.attribute( "direction" ), ok  );
-    if (ok && *ok == false) {
+    if (ok && !(*ok)) {
       qCritical() << "Invalid string: \"" << element.attribute( "direction" ) << "\" in the \"direction\" element";
       return nullptr;
     } else {
@@ -13268,7 +13385,9 @@ void Ports::writeElement( QXmlStreamWriter &xml ) const
 
 Module::Module()
 {
+  mDx = 0.0;
   mDx_set = false;
+  mDy = 0.0;
   mDy_set = false;
   mDescription = nullptr;
   mPorts = nullptr;
@@ -13888,6 +14007,7 @@ void Drawing::writeElement( QXmlStreamWriter &xml ) const
 
 Note::Note()
 {
+  mVersion = 0.0;
   mVersion_set = false;
   mSeverity = Severity_Invalid;
 }
@@ -13977,7 +14097,7 @@ Note *Note::parseElement( const QDomElement &element, bool *ok )
   if (element.hasAttribute("version"))
     result->setVersion( element.attribute( "version" ).toDouble() );
   SeverityEnum severity = severityEnumFromString( element.attribute( "severity" ), ok  );
-  if (ok && *ok == false) {
+  if (ok && !(*ok)) {
     qCritical() << "Invalid string: \"" << element.attribute( "severity" ) << "\" in the \"severity\" element";
     return nullptr;
   } else {

@@ -135,14 +135,16 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
     painter.drawLine(-250, 0, 250, 0);
     painter.drawLine(0, 250, 0, -250);
 
+    int intersectionCount = 0;
     if (!rectanglePath.intersected(wireContourPath).isEmpty()) {
         qWarning() << rectanglePath;
-        int intersectionCount = 0;
         QLineF centerLine = wire2QLine(wire);
         qreal centerLineAngle = centerLine.angle();
 
         qreal x = 0.0, y = 0.0;
         for (int elementIndex = 0; elementIndex<rectanglePath.elementCount(); elementIndex++) {
+            if (intersectionCount > 1)
+                break;
             QPainterPath::Element e = rectanglePath.elementAt(elementIndex);
             switch (e.type) {
             case QPainterPath::MoveToElement:
@@ -151,7 +153,7 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
                 break;
             case QPainterPath::LineToElement: {
                 QLineF rectLine = QLineF(x, y, e.x, e.y);
-                if (rectLine.angle() != centerLineAngle) {
+                if (!qFuzzyCompare(rectLine.angle(), centerLineAngle)) {
                     QPointF tmp;
                     QLineF::IntersectType hasInterSection = rectLine.intersect(centerLine, &tmp);
                     if (hasInterSection == QLineF::BoundedIntersection) {
@@ -185,7 +187,7 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
                     Q_ASSERT(curveInterSectionCount < 3);
                     // one line could not have intersection on anotehr item and two on a corner
                     Q_ASSERT(!(intersectionCount && curveInterSectionCount > 1));
-                    qWarning() << "intersections: " << *intersectionPt1 << *intersectionPt2 << thirdInterSectionPt;
+                    qWarning() << "intersection(s): " << *intersectionPt1 << *intersectionPt2 << thirdInterSectionPt;
                     intersectionCount += curveInterSectionCount;
                     if (intersectionCount > 1) {
                         break;
@@ -227,7 +229,7 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
 
             QLineF externalPart(*internalPoint == centerLine.p1() ? centerLine.p2() : centerLine.p1(),
                                 *intersectionPt1);
-            externalPart.setLength(internalPart.length() - wire.width() / 2.0);
+            externalPart.setLength(externalPart.length() - wire.width() / 2.0);
 
             pen.setColor(Qt::white);
             painter.setPen(pen);
@@ -277,9 +279,9 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
     painter.end();
     QLabel *label = new QLabel(nullptr, Qt::Window);
     label->setPixmap(QPixmap::fromImage(image));
-    label->show();
+    //label->show();
 
-    return 0;
+    return intersectionCount;
 }
 
 /*QList<Wire> EAGLE_Utils::sliceWires(const Wire &wire, const QPointF &internalPoint, const QPointF &intersectionPt1, const QPointF &intersectionPt2, qreal interSectionKeepOutInMm)

@@ -7,7 +7,7 @@
 class LayerDrawer
 {
 public:
-    LayerDrawer(QColor color, QColor highLightColor);
+    LayerDrawer(const QColor &color, const QColor &highLightColor);
 
     virtual void paint(QPainter *painter) = 0;
 

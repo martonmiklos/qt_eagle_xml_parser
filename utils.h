@@ -40,7 +40,7 @@ public:
      * Number of intersection points 0, 1 or 2
      */
     static int smdStopMaskWireIntersections(const Smd & smd,
-                                            const Wire & wire,
+                                            const Wire &wire,
                                             QPointF *internalPoint,
                                             QPointF *intersectionPt1,
                                             QPointF *intersectionPt2,
