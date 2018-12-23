@@ -4,7 +4,10 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
+#include <QRectF>
 #include <QTransform>
+
+#include <qmath.h>
 
 #include "../graphicsutilities.h" // TODO move to here
 
@@ -19,6 +22,14 @@ QRectF EAGLE_Utils::smdToQRectF(const Smd &smd)
                   smd.y() - (smd.dy() / 2.0),
                   smd.dx(),
                   smd.dy());
+}
+
+void EAGLE_Utils::QLineF_ToWire(const QLineF &line, Wire *wire)
+{
+    wire->setX1(line.x1());
+    wire->setX2(line.x2());
+    wire->setY1(line.y1());
+    wire->setY2(line.y2());
 }
 
 int EAGLE_Utils::layerIndexFromName(const QString &layerName, Eagle *design)
@@ -41,19 +52,89 @@ QPainterPath EAGLE_Utils::smdToStopMaskPainterPath(const Smd & smd, qreal stopMa
     qreal rotation = smd.rot().mid(1).toInt();
     QTransform transform;
     transform.translate(smd.x(), smd.y());
+    transform.scale(1.0 + (stopMaskPercentage / 50.0),
+                    1.0 + (stopMaskPercentage / 50.0));
     transform.rotate(rotation);
     transform.translate(-smd.x(), -smd.y());
-    transform.scale(1.0 + (stopMaskPercentage / 100.0),
-                    1.0 + (stopMaskPercentage / 100.0));
     return transform.map(ret);
 }
 
-int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
+QPainterPath EAGLE_Utils::padToStopMaskPainterPath(const Pad & pad, qreal stopMaskPercentage)
+{
+    QPainterPath ret;
+    switch (pad.shape()) {
+    case Pad::Shape_square:
+        ret.addRect(QRectF(pad.x() + pad.diameter() / 2.0,
+                           pad.y() + pad.diameter() / 2.0,
+                           pad.diameter(),
+                           pad.diameter()));
+        break;
+    case Pad::Shape_round:
+        ret.addRoundedRect(QRectF(pad.x() + pad.diameter() / 2.0,
+                           pad.y() + pad.diameter() / 2.0,
+                           pad.diameter(),
+                           pad.diameter()),
+                           50, 50);
+        break;
+    case Pad::Shape_octagon: {
+        QPolygonF p;
+        qreal halfSide = pad.diameter() / 4.0;
+        qreal radius = pad.diameter() / 2.0;
+        p << QPointF(pad.x() - radius,   pad.y() + halfSide);
+        p << QPointF(pad.x() - halfSide, pad.y() + radius);
+        p << QPointF(pad.x() + halfSide, pad.y() + radius);
+        p << QPointF(pad.x() + radius,   pad.y() + halfSide);
+        p << QPointF(pad.x() + radius,   pad.y() - halfSide);
+        p << QPointF(pad.x() + halfSide, pad.y() - radius);
+        p << QPointF(pad.x() - halfSide, pad.y() - radius);
+        p << QPointF(pad.x() - radius,   pad.y() - halfSide);
+        p << QPointF(pad.x() - radius,   pad.y() + halfSide);
+        ret.addPolygon(p);
+    } break;
+    case Pad::Shape_long:
+        // long pads: twice width than diameter
+        ret.moveTo(-pad.diameter() / 2.0, pad.diameter() / 2.0);
+        ret.lineTo(0, pad.diameter() / 2.0);
+        ret.arcTo(QRectF(0, pad.diameter() / 2.0, pad.diameter(), -pad.diameter()),
+                  90,
+                  -180);
+        ret.lineTo(0, -pad.diameter() / 2.0);
+        ret.arcTo(QRectF(-pad.diameter(), pad.diameter() / 2.0, pad.diameter(), -pad.diameter()),
+                  270,
+                  -180);
+        break;
+    case Pad::Shape_offset:
+        // long pads: twice width than diameter
+        ret.moveTo(0, pad.diameter() / 2.0);
+        ret.lineTo(pad.diameter() / 2.0, pad.diameter() / 2.0);
+        ret.arcTo(QRectF(pad.diameter() / 2.0, pad.diameter() / 2.0, pad.diameter(), -pad.diameter()),
+                  90,
+                  -180);
+        ret.lineTo(pad.diameter() / 2.0, -pad.diameter() / 2.0);
+        ret.arcTo(QRectF(-pad.diameter() / 2.0, pad.diameter() / 2.0, pad.diameter(), -pad.diameter()),
+                  270,
+                  -180);
+        break;
+    case Pad::Shape_Invalid:
+        break;
+    }
+
+    qreal rotation = pad.rot().mid(1).toInt();
+    QTransform transform;
+    transform.translate(pad.x(), pad.y());
+    transform.scale(1.0 + (stopMaskPercentage / 50.0),
+                    1.0 + (stopMaskPercentage / 50.0));
+    transform.rotate(rotation);
+    transform.translate(-pad.x(), -pad.y());
+    return transform.map(ret);
+}
+
+int EAGLE_Utils::painterPathWireIntersections(const QPainterPath &path,
+                                              const QPointF &pathCenter,
                                               const Wire &wire,
                                               QPointF *internalPoint,
                                               QPointF *intersectionPt1,
-                                              QPointF *intersectionPt2,
-                                              qreal stopMaskPercentage)
+                                              QPointF *intersectionPt2)
 {
     QImage image(800, 800, QImage::Format_RGB32);
     QPainter painter(&image);
@@ -70,8 +151,9 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
     pen.setColor(Qt::red);
     painter.setPen(pen);
 
-    QPainterPath stopMaskPath = smdToStopMaskPainterPath(smd, stopMaskPercentage);
-    painter.drawPath(stopMaskPath);
+    pen.setColor(Qt::darkGreen);
+    painter.setPen(pen);
+    painter.drawPath(path);
 
     QPainterPath wireContourPath;
     wireContourPath.moveTo(wire.x1(), wire.y1());
@@ -140,16 +222,16 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
     painter.drawLine(0, 250, 0, -250);
 
     int intersectionCount = 0;
-    if (!stopMaskPath.intersected(wireContourPath).isEmpty()) {
-        qWarning() << stopMaskPath;
+    if (!path.intersected(wireContourPath).isEmpty()) {
+        qWarning() << path;
         QLineF centerLine = wire2QLine(wire);
         qreal centerLineAngle = centerLine.angle();
 
         qreal x = 0.0, y = 0.0;
-        for (int elementIndex = 0; elementIndex<stopMaskPath.elementCount(); elementIndex++) {
+        for (int elementIndex = 0; elementIndex<path.elementCount(); elementIndex++) {
             if (intersectionCount > 1)
                 break;
-            QPainterPath::Element e = stopMaskPath.elementAt(elementIndex);
+            QPainterPath::Element e = path.elementAt(elementIndex);
             switch (e.type) {
             case QPainterPath::MoveToElement:
                 x = e.x;
@@ -176,14 +258,15 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
             }
             case QPainterPath::CurveToElement: {
                 QPointF thirdInterSectionPt;
+                QPointF p1, p2;
                 int curveInterSectionCount = 0;
                 bool hasInterSection = GraphicsUtilities::lineIntersectsCurve(centerLine,
                                                                               QPointF(x, y),
-                                                                              QPointF(stopMaskPath.elementAt(elementIndex+2).x, stopMaskPath.elementAt(elementIndex+2).y),
+                                                                              QPointF(path.elementAt(elementIndex+2).x, path.elementAt(elementIndex+2).y),
                                                                               QPointF(e.x, e.y),
-                                                                              QPointF(stopMaskPath.elementAt(elementIndex+1).x, stopMaskPath.elementAt(elementIndex+1).y),
-                                                                              intersectionPt1,
-                                                                              intersectionPt1,
+                                                                              QPointF(path.elementAt(elementIndex+1).x, path.elementAt(elementIndex+1).y),
+                                                                              &p1,
+                                                                              &p2,
                                                                               &thirdInterSectionPt,
                                                                               &curveInterSectionCount);
                 if (hasInterSection) {
@@ -191,15 +274,22 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
                     Q_ASSERT(curveInterSectionCount < 3);
                     // one line could not have intersection on anotehr item and two on a corner
                     Q_ASSERT(!(intersectionCount && curveInterSectionCount > 1));
-                    qWarning() << "intersection(s): " << *intersectionPt1 << *intersectionPt2 << thirdInterSectionPt;
+                    qWarning() << "intersection(s): " << p1 << p2 << thirdInterSectionPt;
+                    if (intersectionCount == 0) {
+                        *intersectionPt1 = p1;
+                        if (curveInterSectionCount > 1)
+                            *intersectionPt2 = p2;
+                    } else if (intersectionCount == 1) {
+                        *intersectionPt2 = p1;
+                    }
                     intersectionCount += curveInterSectionCount;
                     if (intersectionCount > 1) {
                         break;
                     }
                 }
                 elementIndex += 2;
-                x = stopMaskPath.elementAt(elementIndex).x;
-                y = stopMaskPath.elementAt(elementIndex).y;
+                x = path.elementAt(elementIndex).x;
+                y = path.elementAt(elementIndex).y;
                 break;
             }
             case QPainterPath::CurveToDataElement:
@@ -210,38 +300,40 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
 
         // the user is curious about the internal point
         if (intersectionCount == 1 && internalPoint) {
-            QLineF endCheckLine1(centerLine.p1(), smdToQRectF(smd).center());
-            QLineF endCheckLine2(centerLine.p2(), smdToQRectF(smd).center());
+            QLineF endCheckLine1(centerLine.p1(), pathCenter);
+            QLineF endCheckLine2(centerLine.p2(), pathCenter);
             if (endCheckLine1.length() < endCheckLine2.length()) {
                 *internalPoint = centerLine.p1();
             } else if (endCheckLine1.length() > endCheckLine2.length()) {
                 *internalPoint = centerLine.p2();
             } else {
-                // wire length equal -> return with two points
+                // wire length equal -> return with two points at the very same position
                 if (intersectionPt2)
                     *intersectionPt2 = *intersectionPt1;
                 intersectionCount = 2;
                 internalPoint = nullptr;
             }
 
-            pen.setColor(Qt::magenta);
-            painter.setPen(pen);
-            painter.drawEllipse(*internalPoint, 0.1, 0.1);
+            if (internalPoint) {
+                pen.setColor(Qt::magenta);
+                painter.setPen(pen);
+                painter.drawEllipse(*internalPoint, 0.1, 0.1);
 
-            QLineF internalPart(*internalPoint, *intersectionPt1);
-            internalPart.setLength(internalPart.length() + wire.width() / 2.0);
+                QLineF internalPart(*internalPoint, *intersectionPt1);
+                internalPart.setLength(internalPart.length() + wire.width() / 2.0);
 
-            QLineF externalPart(*internalPoint == centerLine.p1() ? centerLine.p2() : centerLine.p1(),
-                                *intersectionPt1);
-            externalPart.setLength(externalPart.length() - wire.width() / 2.0);
+                QLineF externalPart(*internalPoint == centerLine.p1() ? centerLine.p2() : centerLine.p1(),
+                                    *intersectionPt1);
+                externalPart.setLength(externalPart.length() - wire.width() / 2.0);
 
-            pen.setColor(Qt::white);
-            painter.setPen(pen);
-            painter.drawLine(internalPart);
+                pen.setColor(Qt::white);
+                painter.setPen(pen);
+                painter.drawLine(internalPart);
 
-            pen.setColor(Qt::darkCyan);
-            painter.setPen(pen);
-            painter.drawLine(externalPart);
+                pen.setColor(Qt::darkCyan);
+                painter.setPen(pen);
+                painter.drawLine(externalPart);
+            }
         }
 
         pen.setColor(Qt::lightGray);
@@ -287,6 +379,60 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
 
     return intersectionCount;
 }
+
+int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
+                                              const Wire &wire,
+                                              QPointF *internalPoint,
+                                              QPointF *intersectionPt1,
+                                              QPointF *intersectionPt2,
+                                              qreal stopMaskPercentage)
+{
+    QPainterPath stopMaskPath = smdToStopMaskPainterPath(smd, stopMaskPercentage);
+    return painterPathWireIntersections(
+                stopMaskPath,
+                EAGLE_Utils::smdToQRectF(smd).center(),
+                wire,
+                internalPoint,
+                intersectionPt1,
+                intersectionPt2);
+
+}
+
+int EAGLE_Utils::padStopMaskWireIntersections(const Pad &pad, 
+                                              const Wire &wire, 
+                                              QPointF *internalPoint, 
+                                              QPointF *intersectionPt1, 
+                                              QPointF *intersectionPt2, 
+                                              qreal stopMaskPercentage)
+{
+    QPainterPath stopMaskPath = padToStopMaskPainterPath(pad, stopMaskPercentage);
+    return painterPathWireIntersections(
+                stopMaskPath,
+                QPointF(pad.x(), pad.y()),
+                wire,
+                internalPoint,
+                intersectionPt1,
+                intersectionPt2);
+}
+
+int EAGLE_Utils::rectWireIntersections(const Rectangle &rect, 
+                                       const Wire &wire, 
+                                       QPointF *internalPoint, 
+                                       QPointF *intersectionPt1, 
+                                       QPointF *intersectionPt2)
+{
+    QPainterPath stopMaskPath;
+    stopMaskPath.addRect(QRectF(rect.x1(), rect.y1(), rect.x2(), rect.y2()));
+    return painterPathWireIntersections(
+                stopMaskPath,
+                QPointF(rect.x1() + (rect.x2() - rect.x1()) / 2.0,
+                        rect.y1() + (rect.y2() - rect.y1()) / 2.0),
+                wire,
+                internalPoint,
+                intersectionPt1,
+                intersectionPt2);
+}
+
 
 /*QList<Wire> EAGLE_Utils::sliceWires(const Wire &wire, const QPointF &internalPoint, const QPointF &intersectionPt1, const QPointF &intersectionPt2, qreal interSectionKeepOutInMm)
 {
