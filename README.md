@@ -1,4 +1,4 @@
-# EAGLE XML file parser code for Qt (and more useful stuffs)
+# EAGLE XML file parser code for Qt (and other useful stuffs in Qt+EAGLE files topic)
 
 A Qt based class to parse Autodesk EAGLE Schematics/PCBs/libraries.
 
