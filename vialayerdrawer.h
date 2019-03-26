@@ -7,7 +7,7 @@
 class ViaLayerDrawer : public LayerDrawer
 {
 public:
-    ViaLayerDrawer(QColor color, QColor highLightColor);
+    ViaLayerDrawer(QColor color, QColor highLightColor, int layerIndex);
 
     void paint(QPainter *painter) override;
 

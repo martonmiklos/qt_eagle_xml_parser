@@ -9,7 +9,8 @@
 
 #include <qmath.h>
 
-#include "../graphicsutilities.h" // TODO move to here
+#include "druloader.h"
+#include "graphicsutilities.h" // TODO move to here
 
 QLineF EAGLE_Utils::wire2QLine(const Wire &wire)
 {
@@ -41,7 +42,7 @@ int EAGLE_Utils::layerIndexFromName(const QString &layerName, Eagle *design)
     return -1;
 }
 
-QPainterPath EAGLE_Utils::smdToStopMaskPainterPath(const Smd & smd, qreal stopMaskPercentage)
+QPainterPath EAGLE_Utils::smdToStopMaskPainterPath(const Smd & smd, DRULoader *dru)
 {
     QPainterPath ret;
     ret.addRoundedRect(EAGLE_Utils::smdToQRectF(smd),
@@ -52,34 +53,75 @@ QPainterPath EAGLE_Utils::smdToStopMaskPainterPath(const Smd & smd, qreal stopMa
     qreal rotation = smd.rot().mid(1).toInt();
     QTransform transform;
     transform.translate(smd.x(), smd.y());
-    transform.scale(1.0 + (stopMaskPercentage / 50.0),
-                    1.0 + (stopMaskPercentage / 50.0));
+
+    qreal scalePercentage = dru->stopMaskPercentage();
+    if (smd.dx() * ((dru->stopMaskPercentage() / 100.0) - 1.0) > dru->stopMaskOffsetMaxInMm()) {
+        scalePercentage = (dru->stopMaskOffsetMaxInMm() / smd.dx()) * 100.0;
+    } else if (smd.dx() * ((dru->stopMaskPercentage() / 100.0) - 1.0) < dru->stopMaskOffsetMinInMm()) {
+        scalePercentage = (dru->stopMaskOffsetMinInMm() / smd.dx()) * 100.0;
+    }
+
+    if (smd.dy() * ((dru->stopMaskPercentage() / 100.0) - 1.0) > dru->stopMaskOffsetMaxInMm()) {
+        scalePercentage = (dru->stopMaskOffsetMaxInMm() / smd.dy()) * 100.0;
+    } else if (smd.dy() * ((dru->stopMaskPercentage() / 100.0) - 1.0) < dru->stopMaskOffsetMinInMm()) {
+        scalePercentage = (dru->stopMaskOffsetMinInMm() / smd.dy()) * 100.0;
+    }
+
+    transform.scale(1.0 + (scalePercentage / 50.0),
+                    1.0 + (scalePercentage / 50.0));
     transform.rotate(rotation);
     transform.translate(-smd.x(), -smd.y());
     return transform.map(ret);
 }
 
-QPainterPath EAGLE_Utils::padToStopMaskPainterPath(const Pad & pad, qreal stopMaskPercentage)
+QPainterPath EAGLE_Utils::padToStopMaskPainterPath(const Pad & pad, DRULoader *dru)
 {
+    qreal diameter = pad.diameter();
+    if (!pad.diameterSet()) {
+        diameter = pad.drill() * (1.0 + (dru->padTopAnnularRingPercentage() / 100.0));
+        // FIXME check stop limits and only top annular ring is used...
+    }
+
+    QPainterPath ret = padShapeToPainterPath(pad, diameter, dru);
+    qreal rotation = pad.rot().mid(1).toInt();
+    QTransform transform;
+    transform.translate(pad.x(), pad.y());
+
+    qreal scalePercentage = dru->stopMaskPercentage();
+    if (pad.diameter() * ((dru->stopMaskPercentage() / 100.0) - 1.0) > dru->stopMaskOffsetMaxInMm()) {
+        scalePercentage = (dru->stopMaskOffsetMaxInMm() / pad.diameter()) * 100.0;
+    } else if (pad.diameter() * ((dru->stopMaskPercentage() / 100.0) - 1.0) < dru->stopMaskOffsetMinInMm()) {
+        scalePercentage = (dru->stopMaskOffsetMinInMm() / pad.diameter()) * 100.0;
+    }
+
+    transform.scale(1.0 + (scalePercentage / 50.0),
+                    1.0 + (scalePercentage / 50.0));
+    transform.rotate(rotation);
+    transform.translate(-pad.x(), -pad.y());
+    return transform.map(ret);
+}
+
+QPainterPath EAGLE_Utils::padShapeToPainterPath(const Pad &pad, qreal diameter, DRULoader *dru)
+{
+    qreal radius = diameter / 2.0;
     QPainterPath ret;
     switch (pad.shape()) {
     case Pad::Shape_square:
-        ret.addRect(QRectF(pad.x() + pad.diameter() / 2.0,
-                           pad.y() + pad.diameter() / 2.0,
-                           pad.diameter(),
-                           pad.diameter()));
+        ret.addRect(QRectF(pad.x() + radius,
+                           pad.y() + radius,
+                           diameter,
+                           diameter));
         break;
     case Pad::Shape_round:
-        ret.addRoundedRect(QRectF(pad.x() + pad.diameter() / 2.0,
-                           pad.y() + pad.diameter() / 2.0,
-                           pad.diameter(),
-                           pad.diameter()),
+        ret.addRoundedRect(QRectF(pad.x() + radius,
+                           pad.y() + radius,
+                           diameter,
+                           diameter),
                            50, 50);
         break;
     case Pad::Shape_octagon: {
         QPolygonF p;
-        qreal halfSide = pad.diameter() / 4.0;
-        qreal radius = pad.diameter() / 2.0;
+        qreal halfSide = diameter / 4.0;
         p << QPointF(pad.x() - radius,   pad.y() + halfSide);
         p << QPointF(pad.x() - halfSide, pad.y() + radius);
         p << QPointF(pad.x() + halfSide, pad.y() + radius);
@@ -91,42 +133,64 @@ QPainterPath EAGLE_Utils::padToStopMaskPainterPath(const Pad & pad, qreal stopMa
         p << QPointF(pad.x() - radius,   pad.y() + halfSide);
         ret.addPolygon(p);
     } break;
-    case Pad::Shape_long:
-        // long pads: twice width than diameter
-        ret.moveTo(-pad.diameter() / 2.0, pad.diameter() / 2.0);
-        ret.lineTo(0, pad.diameter() / 2.0);
-        ret.arcTo(QRectF(0, pad.diameter() / 2.0, pad.diameter(), -pad.diameter()),
+    case Pad::Shape_long: {
+        qreal e = (dru->elongationPercentageForLongPads() / 100.0) * diameter;
+        ret.moveTo(-radius - (e/2.0 - radius), radius);
+        ret.arcTo(QRectF(e/2.0 - radius, radius, diameter, -diameter),
                   90,
                   -180);
-        ret.lineTo(0, -pad.diameter() / 2.0);
-        ret.arcTo(QRectF(-pad.diameter(), pad.diameter() / 2.0, pad.diameter(), -pad.diameter()),
+        ret.arcTo(QRectF(-radius - e/2.0, radius, diameter, -diameter),
                   270,
                   -180);
-        break;
-    case Pad::Shape_offset:
-        // long pads: twice width than diameter
-        ret.moveTo(0, pad.diameter() / 2.0);
-        ret.lineTo(pad.diameter() / 2.0, pad.diameter() / 2.0);
-        ret.arcTo(QRectF(pad.diameter() / 2.0, pad.diameter() / 2.0, pad.diameter(), -pad.diameter()),
+    } break;
+    case Pad::Shape_offset: {
+        qreal e = (dru->elongationPercentageForOffsetPads() / 100.0) * diameter;
+        ret.moveTo(0, radius);
+        ret.arcTo(QRectF(radius * (dru->elongationPercentageForOffsetPads() / 100.0), radius, diameter, -diameter),
                   90,
                   -180);
-        ret.lineTo(pad.diameter() / 2.0, -pad.diameter() / 2.0);
-        ret.arcTo(QRectF(-pad.diameter() / 2.0, pad.diameter() / 2.0, pad.diameter(), -pad.diameter()),
+        ret.arcTo(QRectF(-radius, radius, diameter, -diameter),
                   270,
                   -180);
-        break;
+    } break;
     case Pad::Shape_Invalid:
         break;
     }
+    return ret;
+}
 
-    qreal rotation = pad.rot().mid(1).toInt();
-    QTransform transform;
-    transform.translate(pad.x(), pad.y());
-    transform.scale(1.0 + (stopMaskPercentage / 50.0),
-                    1.0 + (stopMaskPercentage / 50.0));
-    transform.rotate(rotation);
-    transform.translate(-pad.x(), -pad.y());
-    return transform.map(ret);
+QPainterPath EAGLE_Utils::viaShapeToPainterPath(const Via &via)
+{
+    QPainterPath path;
+    switch (via.shape()) {
+    case Via::Shape_Invalid:
+        return path;
+    case Via::Shape_square:
+        path.addRect(via.x() - (via.diameter()/2.0),
+                     via.y() - (via.diameter()/2.0),
+                     via.diameter(),
+                     via.diameter());
+        break;
+    case Via::Shape_round:
+        path.addEllipse(QPointF(via.x(), via.y()), via.diameter(), via.diameter());
+        break;
+    case Via::Shape_octagon: {
+        qreal halfSide = (via.diameter() * sin(qDegreesToRadians(45.0))) / 2.0;
+        QPolygonF p;
+        qreal radius = via.diameter() / 2.0;
+        p << QPointF(via.x() - radius,   via.y() + halfSide);
+        p << QPointF(via.x() - halfSide, via.y() + radius);
+        p << QPointF(via.x() + halfSide, via.y() + radius);
+        p << QPointF(via.x() + radius,   via.y() + halfSide);
+        p << QPointF(via.x() + radius,   via.y() - halfSide);
+        p << QPointF(via.x() + halfSide, via.y() - radius);
+        p << QPointF(via.x() - halfSide, via.y() - radius);
+        p << QPointF(via.x() - radius,   via.y() - halfSide);
+        p << QPointF(via.x() - radius,   via.y() + halfSide);
+        path.addPolygon(p);
+    } break;
+    }
+    return path;
 }
 
 int EAGLE_Utils::painterPathWireIntersections(const QPainterPath &path,
@@ -385,9 +449,9 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
                                               QPointF *internalPoint,
                                               QPointF *intersectionPt1,
                                               QPointF *intersectionPt2,
-                                              qreal stopMaskPercentage)
+                                              DRULoader *dru)
 {
-    QPainterPath stopMaskPath = smdToStopMaskPainterPath(smd, stopMaskPercentage);
+    QPainterPath stopMaskPath = smdToStopMaskPainterPath(smd, dru);
     return painterPathWireIntersections(
                 stopMaskPath,
                 EAGLE_Utils::smdToQRectF(smd).center(),
@@ -398,14 +462,14 @@ int EAGLE_Utils::smdStopMaskWireIntersections(const Smd &smd,
 
 }
 
-int EAGLE_Utils::padStopMaskWireIntersections(const Pad &pad, 
-                                              const Wire &wire, 
-                                              QPointF *internalPoint, 
-                                              QPointF *intersectionPt1, 
-                                              QPointF *intersectionPt2, 
-                                              qreal stopMaskPercentage)
+int EAGLE_Utils::padStopMaskWireIntersections(const Pad &pad,
+                                              const Wire &wire,
+                                              QPointF *internalPoint,
+                                              QPointF *intersectionPt1,
+                                              QPointF *intersectionPt2,
+                                              DRULoader *dru)
 {
-    QPainterPath stopMaskPath = padToStopMaskPainterPath(pad, stopMaskPercentage);
+    QPainterPath stopMaskPath = padToStopMaskPainterPath(pad, dru);
     return painterPathWireIntersections(
                 stopMaskPath,
                 QPointF(pad.x(), pad.y()),
@@ -432,12 +496,6 @@ int EAGLE_Utils::rectWireIntersections(const Rectangle &rect,
                 intersectionPt1,
                 intersectionPt2);
 }
-
-
-/*QList<Wire> EAGLE_Utils::sliceWires(const Wire &wire, const QPointF &internalPoint, const QPointF &intersectionPt1, const QPointF &intersectionPt2, qreal interSectionKeepOutInMm)
-{
-
-}*/
 
 qreal EAGLE_Utils::wireAngle(const Wire &wire)
 {

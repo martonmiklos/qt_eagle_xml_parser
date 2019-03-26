@@ -9,4 +9,6 @@ sed -i -E ':a;N;$!s/(<!ATTLIST eagle.*version.*)%Real;/\1%String/g' eagle_fixed.
 
 perl dtd2xsd.pl eagle_fixed.dtd  > eagle.xsd
 
-#$KXML_COMPILER --xml eagle.xsd -d . --verbose
+$KXML_COMPILER --xml eagle.xsd -d . --verbose --pointer-accessors
+
+cp -f eagle.* ../

@@ -1,8 +1,8 @@
 #include "normallayerdrawer.h"
 
 
-NormalLayerDrawer::NormalLayerDrawer(QColor color, QColor highLightColor) :
-    LayerDrawer(color, highLightColor)
+NormalLayerDrawer::NormalLayerDrawer(QColor color, QColor highLightColor, int layerIndex) :
+    LayerDrawer(color, highLightColor, layerIndex)
 {
 
 }
@@ -11,13 +11,21 @@ NormalLayerDrawer::NormalLayerDrawer(QColor color, QColor highLightColor) :
 void NormalLayerDrawer::paint(QPainter *painter)
 {
     for (Wire *wire : m_wires) {
-        drawWire(wire, painter);
+        drawWire(*wire, painter);
+    }
+
+    for (Rectangle *rect : m_rectangles) {
+        //drawRectangle(rect);
     }
 }
 
-void NormalLayerDrawer::drawWire(Wire *wire, QPainter *painter)
+void NormalLayerDrawer::drawWire(const Wire &wire, QPainter *painter)
 {
     painter->setBrush(m_color);
+    
+}
 
-
+void NormalLayerDrawer::drawPolygon(const Polygon &rect, QPainter *painter)
+{
+    
 }
