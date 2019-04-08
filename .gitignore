@@ -41,3 +41,9 @@ target_wrapper.*
 
 # QtCreator CMake
 CMakeLists.txt.user*
+
+
+tools/*.xsd
+tools/*fixed.dtd
+
+.directory
