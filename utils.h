@@ -107,6 +107,8 @@ public:
     static qreal wireAngle(const Wire & wire);
     static QPainterPath padShapeToPainterPath(const Pad &pad, qreal diameter, DRULoader *dru);
     static QPainterPath viaShapeToPainterPath(const Via &via);
+    static float rotationToDegrees(const QString& rotaion, bool* mirrored = nullptr, bool *spin = nullptr);
+    static QRectF boardBoundingRect(Board* brd);
 
 private:
     static QPainterPath smdToStopMaskPainterPath(const Smd &smd, DRULoader *dru);

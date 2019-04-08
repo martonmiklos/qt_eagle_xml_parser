@@ -38,3 +38,10 @@ qreal UnitUtilities::stringToMm(const QString &val)
 
     return ret;
 }
+
+int UnitUtilities::mmToU(const qreal mm)
+{
+    // EAGLE stores all coordinate and size values as int values with a
+    // resolution of 1/320000mm (0.003125µ).
+    return  static_cast<int>(mm * 32000.0);
+}

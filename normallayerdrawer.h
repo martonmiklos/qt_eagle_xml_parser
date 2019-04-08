@@ -22,4 +22,5 @@ private:
     void drawPolygon(const Polygon & rect, QPainter *painter);
 };
 
+
 #endif // NORMALLAYERDRAWER_H

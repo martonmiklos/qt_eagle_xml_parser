@@ -1,16 +1,18 @@
 #include "utils.h"
 
+#include "druloader.h"
+#include "eaglelayers.h"
+#include "graphicsutilities.h" // TODO move to here
+
 #include <QDebug>
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
 #include <QRectF>
+#include <QRegularExpression>
 #include <QTransform>
 
 #include <qmath.h>
-
-#include "druloader.h"
-#include "graphicsutilities.h" // TODO move to here
 
 QLineF EAGLE_Utils::wire2QLine(const Wire &wire)
 {
@@ -191,6 +193,35 @@ QPainterPath EAGLE_Utils::viaShapeToPainterPath(const Via &via)
     } break;
     }
     return path;
+}
+
+float EAGLE_Utils::rotationToDegrees(const QString& rotaion, bool *mirrored, bool* spin)
+{
+    if (mirrored != nullptr)
+        *mirrored = rotaion.contains('M');
+    if (spin != nullptr)
+        *spin = rotaion.contains('S');
+
+    QRegularExpression re("[^0-9]*(.*)");
+    return re.match(rotaion).captured(1).toFloat();
+}
+
+QRectF EAGLE_Utils::boardBoundingRect(Board *brd)
+{
+    QPolygonF poly;
+    for (Wire* wire : *brd->plain()->wireList()) {
+        if (wire->layer() == EagleLayers::Dimension) {
+            QLineF wireLine = wire2QLine(*wire);
+            if (poly.isEmpty()) {
+                poly.append(wireLine.p1());
+                poly.append(wireLine.p2());
+            } else {
+                if (poly.last() == wireLine.p1())
+                    poly.append(wireLine.p2());
+            }
+        }
+    }
+    return poly.boundingRect();
 }
 
 int EAGLE_Utils::painterPathWireIntersections(const QPainterPath &path,
