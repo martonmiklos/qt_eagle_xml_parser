@@ -75,6 +75,8 @@ public:
         tDocu = 51,
         bDocu = 52
     };
+
+    static PCBLayers oppositeLayer(const PCBLayers layer);
 };
 
 #endif // EAGLELAYERS_H

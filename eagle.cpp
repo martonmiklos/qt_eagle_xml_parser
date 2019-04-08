@@ -7,8 +7,15 @@
 #include <QFile>
 #include <QDomDocument>
 
-Layer::Layer()
-  : mNumber(0), mNumber_set(false), mColor(0), mColor_set(false), mFill(0), mFill_set(false), mVisible(Visible_Invalid), mActive(Active_Invalid)
+Layer::Layer() :
+  mNumber(0),
+  mNumber_set(false),
+  mColor(0),
+  mColor_set(false),
+  mFill(0),
+  mFill_set(false),
+  mVisible(Visible_yes),
+  mActive(Active_yes)
 {
 }
 
@@ -276,8 +283,19 @@ void Layers::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Grid::Grid()
-  : mDistance(0.0), mDistance_set(false), mUnitdist(Unitdist_Invalid), mUnit(Unit_Invalid), mStyle(Style_Invalid), mMultiple(0), mMultiple_set(false), mDisplay(Display_Invalid), mAltdistance(0.0), mAltdistance_set(false), mAltunitdist(Altunitdist_Invalid), mAltunit(Altunit_Invalid)
+Grid::Grid() :
+  mDistance(0.0),
+  mDistance_set(false),
+  mUnitdist(Unitdist_Invalid),
+  mUnit(Unit_Invalid),
+  mStyle(Style_lines),
+  mMultiple(1),
+  mMultiple_set(false),
+  mDisplay(Display_no),
+  mAltdistance(0.0),
+  mAltdistance_set(false),
+  mAltunitdist(Altunitdist_Invalid),
+  mAltunit(Altunit_Invalid)
 {
 }
 
@@ -699,8 +717,10 @@ void Grid::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Setting::Setting()
-  : mAlwaysvectorfont(Alwaysvectorfont_Invalid), mVerticaltext(Verticaltext_Invalid), mKeepoldvectorfont(Keepoldvectorfont_Invalid)
+Setting::Setting() :
+  mAlwaysvectorfont(Alwaysvectorfont_Invalid),
+  mVerticaltext(Verticaltext_up),
+  mKeepoldvectorfont(Keepoldvectorfont_no)
 {
 }
 
@@ -1063,8 +1083,17 @@ void Mfgpreviewcolors::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Via::Via()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mDrill(0.0), mDrill_set(false), mDiameter(0.0), mDiameter_set(false), mShape(Shape_Invalid), mAlwaysstop(Alwaysstop_Invalid)
+Via::Via() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mDrill(0.0),
+  mDrill_set(false),
+  mDiameter(0),
+  mDiameter_set(false),
+  mShape(Shape_round),
+  mAlwaysstop(Alwaysstop_no)
 {
 }
 
@@ -1294,8 +1323,8 @@ void Via::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Contactref::Contactref()
-  : mRoute(Route_Invalid)
+Contactref::Contactref() :
+  mRoute(Route_all)
 {
 }
 
@@ -1416,8 +1445,13 @@ void Contactref::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Vertex::Vertex()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mCurve(0.0), mCurve_set(false)
+Vertex::Vertex() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mCurve(0),
+  mCurve_set(false)
 {
 }
 
@@ -1507,8 +1541,20 @@ void Vertex::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Polygon::Polygon()
-  : mWidth(0.0), mWidth_set(false), mLayer(0), mLayer_set(false), mSpacing(0.0), mSpacing_set(false), mPour(Pour_Invalid), mIsolate(0.0), mIsolate_set(false), mOrphans(Orphans_Invalid), mThermals(Thermals_Invalid), mRank(0), mRank_set(false)
+Polygon::Polygon() :
+  mWidth(0.0),
+  mWidth_set(false),
+  mLayer(0),
+  mLayer_set(false),
+  mSpacing(0.0),
+  mSpacing_set(false),
+  mPour(Pour_solid),
+  mIsolate(0.0),
+  mIsolate_set(false),
+  mOrphans(Orphans_no),
+  mThermals(Thermals_yes),
+  mRank(0),
+  mRank_set(false)
 {
 }
 
@@ -1826,8 +1872,23 @@ void Polygon::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Wire::Wire()
-  : mX1(0.0), mX1_set(false), mY1(0.0), mY1_set(false), mX2(0.0), mX2_set(false), mY2(0.0), mY2_set(false), mWidth(0.0), mWidth_set(false), mLayer(0), mLayer_set(false), mStyle(Style_Invalid), mCurve(0.0), mCurve_set(false), mCap(Cap_Invalid)
+Wire::Wire() :
+  mX1(0.0),
+  mX1_set(false),
+  mY1(0.0),
+  mY1_set(false),
+  mX2(0.0),
+  mX2_set(false),
+  mY2(0.0),
+  mY2_set(false),
+  mWidth(0.0),
+  mWidth_set(false),
+  mLayer(0),
+  mLayer_set(false),
+  mStyle(Style_continuous),
+  mCurve(0),
+  mCurve_set(false),
+  mCap(Cap_round)
 {
 }
 
@@ -2120,8 +2181,10 @@ void Wire::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Signal::Signal()
-  : mClass(0), mClass_set(false), mAirwireshidden(Airwireshidden_Invalid)
+Signal::Signal() :
+  mClass(0),
+  mClass_set(false),
+  mAirwireshidden(Airwireshidden_no)
 {
 }
 
@@ -2398,8 +2461,22 @@ void Signals::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Attribute::Attribute()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mSize(0.0), mSize_set(false), mLayer(0), mLayer_set(false), mFont(Font_Invalid), mRatio(0), mRatio_set(false), mDisplay(Display_Invalid), mConstant(Constant_Invalid), mAlign(Align_Invalid)
+Attribute::Attribute() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mSize(0.0),
+  mSize_set(false),
+  mLayer(0),
+  mLayer_set(false),
+  mFont(Font_Invalid),
+  mRatio(0),
+  mRatio_set(false),
+  mRot("R0"),
+  mDisplay(Display_value),
+  mConstant(Constant_no),
+  mAlign(Align_bottom_left)
 {
 }
 
@@ -2767,7 +2844,7 @@ Attribute *Attribute::parseElement( const QDomElement &element, bool *ok )
     }
   } else {
     // default value
-    result->setAlign(Align_bottom-left);
+    result->setAlign(Align_bottom_left);
   }
 
   if ( ok ) *ok = true;
@@ -2805,8 +2882,8 @@ void Attribute::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Variant::Variant()
-  : mPopulate(Populate_Invalid)
+Variant::Variant() :
+  mPopulate(Populate_yes)
 {
 }
 
@@ -2927,8 +3004,15 @@ void Variant::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Element::Element()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mLocked(Locked_Invalid), mPopulate(Populate_Invalid), mSmashed(Smashed_Invalid)
+Element::Element() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mLocked(Locked_no),
+  mPopulate(Populate_yes),
+  mSmashed(Smashed_no),
+  mRot("R0")
 {
 }
 
@@ -3415,8 +3499,8 @@ void Param::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Pass::Pass()
-  : mActive(Active_Invalid)
+Pass::Pass() :
+  mActive(Active_yes)
 {
 }
 
@@ -3614,7 +3698,8 @@ void Autorouter::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Description::Description()
+Description::Description() :
+  mLanguage("en")
 {
 }
 
@@ -3875,8 +3960,22 @@ void Fusionsync::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Text::Text()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mSize(0.0), mSize_set(false), mLayer(0), mLayer_set(false), mFont(Font_Invalid), mRatio(0), mRatio_set(false), mAlign(Align_Invalid), mDistance(0), mDistance_set(false)
+Text::Text() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mSize(0.0),
+  mSize_set(false),
+  mLayer(0),
+  mLayer_set(false),
+  mFont(Font_proportional),
+  mRatio(8),
+  mRatio_set(false),
+  mRot("R0"),
+  mAlign(Align_bottom_left),
+  mDistance(50),
+  mDistance_set(false)
 {
 }
 
@@ -4144,7 +4243,7 @@ Text *Text::parseElement( const QDomElement &element, bool *ok )
     }
   } else {
     // default value
-    result->setAlign(Align_bottom-left);
+    result->setAlign(Align_bottom_left);
   }
   if (element.hasAttribute("distance"))
     result->setDistance( element.attribute( "distance" ).toInt() );
@@ -4181,8 +4280,38 @@ void Text::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Dimension::Dimension()
-  : mX1(0.0), mX1_set(false), mY1(0.0), mY1_set(false), mX2(0.0), mX2_set(false), mY2(0.0), mY2_set(false), mX3(0.0), mX3_set(false), mY3(0.0), mY3_set(false), mLayer(0), mLayer_set(false), mDtype(Dtype_Invalid), mWidth(0.0), mWidth_set(false), mExtwidth(0.0), mExtwidth_set(false), mExtlength(0.0), mExtlength_set(false), mExtoffset(0.0), mExtoffset_set(false), mTextsize(0.0), mTextsize_set(false), mTextratio(0), mTextratio_set(false), mUnit(Unit_Invalid), mPrecision(0), mPrecision_set(false), mVisible(Visible_Invalid)
+Dimension::Dimension() :
+  mX1(0.0),
+  mX1_set(false),
+  mY1(0.0),
+  mY1_set(false),
+  mX2(0.0),
+  mX2_set(false),
+  mY2(0.0),
+  mY2_set(false),
+  mX3(0.0),
+  mX3_set(false),
+  mY3(0.0),
+  mY3_set(false),
+  mLayer(0),
+  mLayer_set(false),
+  mDtype(Dtype_parallel),
+  mWidth(0.13),
+  mWidth_set(false),
+  mExtwidth(0),
+  mExtwidth_set(false),
+  mExtlength(0),
+  mExtlength_set(false),
+  mExtoffset(0),
+  mExtoffset_set(false),
+  mTextsize(0.0),
+  mTextsize_set(false),
+  mTextratio(8),
+  mTextratio_set(false),
+  mUnit(Unit_mm),
+  mPrecision(2),
+  mPrecision_set(false),
+  mVisible(Visible_no)
 {
 }
 
@@ -4666,8 +4795,17 @@ void Dimension::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Circle::Circle()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mRadius(0.0), mRadius_set(false), mWidth(0.0), mWidth_set(false), mLayer(0), mLayer_set(false)
+Circle::Circle() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mRadius(0.0),
+  mRadius_set(false),
+  mWidth(0.0),
+  mWidth_set(false),
+  mLayer(0),
+  mLayer_set(false)
 {
 }
 
@@ -4797,8 +4935,18 @@ void Circle::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Rectangle::Rectangle()
-  : mX1(0.0), mX1_set(false), mY1(0.0), mY1_set(false), mX2(0.0), mX2_set(false), mY2(0.0), mY2_set(false), mLayer(0), mLayer_set(false)
+Rectangle::Rectangle() :
+  mX1(0.0),
+  mX1_set(false),
+  mY1(0.0),
+  mY1_set(false),
+  mX2(0.0),
+  mX2_set(false),
+  mY2(0.0),
+  mY2_set(false),
+  mLayer(0),
+  mLayer_set(false),
+  mRot("R0")
 {
 }
 
@@ -4941,8 +5089,25 @@ void Rectangle::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Frame::Frame()
-  : mX1(0.0), mX1_set(false), mY1(0.0), mY1_set(false), mX2(0.0), mX2_set(false), mY2(0.0), mY2_set(false), mColumns(0), mColumns_set(false), mRows(0), mRows_set(false), mLayer(0), mLayer_set(false), mBorderLeft(BorderLeft_Invalid), mBorderTop(BorderTop_Invalid), mBorderRight(BorderRight_Invalid), mBorderBottom(BorderBottom_Invalid)
+Frame::Frame() :
+  mX1(0.0),
+  mX1_set(false),
+  mY1(0.0),
+  mY1_set(false),
+  mX2(0.0),
+  mX2_set(false),
+  mY2(0.0),
+  mY2_set(false),
+  mColumns(0),
+  mColumns_set(false),
+  mRows(0),
+  mRows_set(false),
+  mLayer(0),
+  mLayer_set(false),
+  mBorderLeft(BorderLeft_yes),
+  mBorderTop(BorderTop_yes),
+  mBorderRight(BorderRight_yes),
+  mBorderBottom(BorderBottom_yes)
 {
 }
 
@@ -5320,8 +5485,13 @@ void Frame::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Hole::Hole()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mDrill(0.0), mDrill_set(false)
+Hole::Hole() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mDrill(0.0),
+  mDrill_set(false)
 {
 }
 
@@ -5640,8 +5810,20 @@ void Plain::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Pad::Pad()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mDrill(0.0), mDrill_set(false), mDiameter(0.0), mDiameter_set(false), mShape(Shape_Invalid), mStop(Stop_Invalid), mThermals(Thermals_Invalid), mFirst(First_Invalid)
+Pad::Pad() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mDrill(0.0),
+  mDrill_set(false),
+  mDiameter(0),
+  mDiameter_set(false),
+  mShape(Shape_round),
+  mRot("R0"),
+  mStop(Stop_yes),
+  mThermals(Thermals_yes),
+  mFirst(First_no)
 {
 }
 
@@ -5994,8 +6176,23 @@ void Pad::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Smd::Smd()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mDx(0.0), mDx_set(false), mDy(0.0), mDy_set(false), mLayer(0), mLayer_set(false), mRoundness(0), mRoundness_set(false), mStop(Stop_Invalid), mThermals(Thermals_Invalid), mCream(Cream_Invalid)
+Smd::Smd() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mDx(0.0),
+  mDx_set(false),
+  mDy(0.0),
+  mDy_set(false),
+  mLayer(0),
+  mLayer_set(false),
+  mRoundness(0),
+  mRoundness_set(false),
+  mRot("R0"),
+  mStop(Stop_yes),
+  mThermals(Thermals_yes),
+  mCream(Cream_yes)
 {
 }
 
@@ -6327,8 +6524,12 @@ void Smd::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Package::Package()
-  : mLocallyModified(LocallyModified_Invalid), mLibraryVersion(0), mLibraryVersion_set(false), mLibraryLocallyModified(LibraryLocallyModified_Invalid), mDescription(nullptr)
+Package::Package() :
+  mLocallyModified(LocallyModified_no),
+  mLibraryVersion(0),
+  mLibraryVersion_set(false),
+  mLibraryLocallyModified(LibraryLocallyModified_no),
+  mDescription(nullptr)
 {
 }
 
@@ -6935,8 +7136,13 @@ void Packageinstances::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Package3d::Package3d()
-  : mType(Type_Invalid), mLibraryVersion(0), mLibraryVersion_set(false), mLibraryLocallyModified(LibraryLocallyModified_Invalid), mDescription(nullptr), mPackageinstances(nullptr)
+Package3d::Package3d() :
+  mType(Type_Invalid),
+  mLibraryVersion(0),
+  mLibraryVersion_set(false),
+  mLibraryLocallyModified(LibraryLocallyModified_no),
+  mDescription(nullptr),
+  mPackageinstances(nullptr)
 {
 }
 
@@ -7211,8 +7417,18 @@ void Packages3d::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Pin::Pin()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mVisible(Visible_Invalid), mLength(Length_Invalid), mDirection(Direction_Invalid), mFunction(Function_Invalid), mSwaplevel(0), mSwaplevel_set(false)
+Pin::Pin() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mVisible(Visible_both),
+  mLength(Length_long),
+  mDirection(Direction_io),
+  mFunction(Function_none),
+  mSwaplevel(0),
+  mSwaplevel_set(false),
+  mRot("R0")
 {
 }
 
@@ -7575,8 +7791,12 @@ void Pin::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Symbol::Symbol()
-  : mLocallyModified(LocallyModified_Invalid), mLibraryVersion(0), mLibraryVersion_set(false), mLibraryLocallyModified(LibraryLocallyModified_Invalid), mDescription(nullptr)
+Symbol::Symbol() :
+  mLocallyModified(LocallyModified_no),
+  mLibraryVersion(0),
+  mLibraryVersion_set(false),
+  mLibraryLocallyModified(LibraryLocallyModified_no),
+  mDescription(nullptr)
 {
 }
 
@@ -8031,8 +8251,14 @@ void Symbols::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Gate::Gate()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mAddlevel(Addlevel_Invalid), mSwaplevel(0), mSwaplevel_set(false)
+Gate::Gate() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mAddlevel(Addlevel_next),
+  mSwaplevel(0),
+  mSwaplevel_set(false)
 {
 }
 
@@ -8270,8 +8496,8 @@ void Gates::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Connect::Connect()
-  : mRoute(Route_Invalid)
+Connect::Connect() :
+  mRoute(Route_all)
 {
 }
 
@@ -8690,8 +8916,10 @@ void Technologies::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Device::Device()
-  : mConnects(nullptr), mPackage3dinstances(nullptr), mTechnologies(nullptr)
+Device::Device() :
+  mConnects(nullptr),
+  mPackage3dinstances(nullptr),
+  mTechnologies(nullptr)
 {
 }
 
@@ -8933,8 +9161,9 @@ void Pinmap::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Pinmapping::Pinmapping()
-  : mIsusermap(Isusermap_Invalid), mIddevicewide(Iddevicewide_Invalid)
+Pinmapping::Pinmapping() :
+  mIsusermap(Isusermap_no),
+  mIddevicewide(Iddevicewide_yes)
 {
 }
 
@@ -9167,8 +9396,9 @@ void Model::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Spice::Spice()
-  : mPinmapping(nullptr), mModel(nullptr)
+Spice::Spice() :
+  mPinmapping(nullptr),
+  mModel(nullptr)
 {
 }
 
@@ -9237,8 +9467,16 @@ void Spice::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Deviceset::Deviceset()
-  : mLocallyModified(LocallyModified_Invalid), mUservalue(Uservalue_Invalid), mLibraryVersion(0), mLibraryVersion_set(false), mLibraryLocallyModified(LibraryLocallyModified_Invalid), mDescription(nullptr), mGates(nullptr), mDevices(nullptr), mSpice(nullptr)
+Deviceset::Deviceset() :
+  mLocallyModified(LocallyModified_no),
+  mUservalue(Uservalue_no),
+  mLibraryVersion(0),
+  mLibraryVersion_set(false),
+  mLibraryLocallyModified(LibraryLocallyModified_no),
+  mDescription(nullptr),
+  mGates(nullptr),
+  mDevices(nullptr),
+  mSpice(nullptr)
 {
 }
 
@@ -9617,8 +9855,12 @@ void Devicesets::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Library::Library()
-  : mDescription(nullptr), mPackages(nullptr), mPackages3d(nullptr), mSymbols(nullptr), mDevicesets(nullptr)
+Library::Library() :
+  mDescription(nullptr),
+  mPackages(nullptr),
+  mPackages3d(nullptr),
+  mSymbols(nullptr),
+  mDevicesets(nullptr)
 {
 }
 
@@ -9886,8 +10128,8 @@ void Attributes::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Variantdef::Variantdef()
-  : mCurrent(Current_Invalid)
+Variantdef::Variantdef() :
+  mCurrent(Current_no)
 {
 }
 
@@ -10043,8 +10285,11 @@ void Variantdefs::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Clearance::Clearance()
-  : mClass(0), mClass_set(false), mValue(0.0), mValue_set(false)
+Clearance::Clearance() :
+  mClass(0),
+  mClass_set(false),
+  mValue(0),
+  mValue_set(false)
 {
 }
 
@@ -10114,8 +10359,13 @@ void Clearance::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Class::Class()
-  : mNumber(0), mNumber_set(false), mWidth(0.0), mWidth_set(false), mDrill(0.0), mDrill_set(false)
+Class::Class() :
+  mNumber(0),
+  mNumber_set(false),
+  mWidth(0),
+  mWidth_set(false),
+  mDrill(0),
+  mDrill_set(false)
 {
 }
 
@@ -10412,8 +10662,22 @@ void Errors::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Board::Board()
-  : mLimitedwidth(0.0), mLimitedwidth_set(false), mDescription(nullptr), mFusionsync(nullptr), mPlain(nullptr), mLibraries(nullptr), mAttributes(nullptr), mVariantdefs(nullptr), mClasses(nullptr), mDesignrules(nullptr), mAutorouter(nullptr), mElements(nullptr), mSignals(nullptr), mMfgpreviewcolors(nullptr), mErrors(nullptr)
+Board::Board() :
+  mLimitedwidth(0.0),
+  mLimitedwidth_set(false),
+  mDescription(nullptr),
+  mFusionsync(nullptr),
+  mPlain(nullptr),
+  mLibraries(nullptr),
+  mAttributes(nullptr),
+  mVariantdefs(nullptr),
+  mClasses(nullptr),
+  mDesignrules(nullptr),
+  mAutorouter(nullptr),
+  mElements(nullptr),
+  mSignals(nullptr),
+  mMfgpreviewcolors(nullptr),
+  mErrors(nullptr)
 {
 }
 
@@ -10814,8 +11078,11 @@ void Portref::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Junction::Junction()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false)
+Junction::Junction() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false)
 {
 }
 
@@ -10885,8 +11152,21 @@ void Junction::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Label::Label()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mSize(0.0), mSize_set(false), mLayer(0), mLayer_set(false), mFont(Font_Invalid), mRatio(0), mRatio_set(false), mXref(Xref_Invalid), mAlign(Align_Invalid)
+Label::Label() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mSize(0.0),
+  mSize_set(false),
+  mLayer(0),
+  mLayer_set(false),
+  mFont(Font_proportional),
+  mRatio(8),
+  mRatio_set(false),
+  mRot("R0"),
+  mXref(Xref_no),
+  mAlign(Align_bottom_left)
 {
 }
 
@@ -11177,7 +11457,7 @@ Label *Label::parseElement( const QDomElement &element, bool *ok )
     }
   } else {
     // default value
-    result->setAlign(Align_bottom-left);
+    result->setAlign(Align_bottom_left);
   }
 
   if ( ok ) *ok = true;
@@ -11209,8 +11489,20 @@ void Label::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Probe::Probe()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mSize(0.0), mSize_set(false), mLayer(0), mLayer_set(false), mFont(Font_Invalid), mRatio(0), mRatio_set(false), mXref(Xref_Invalid)
+Probe::Probe() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mSize(0.0),
+  mSize_set(false),
+  mLayer(0),
+  mLayer_set(false),
+  mFont(Font_proportional),
+  mRatio(8),
+  mRatio_set(false),
+  mRot("R0"),
+  mXref(Xref_no)
 {
 }
 
@@ -11641,8 +11933,9 @@ void Segment::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Net::Net()
-  : mClass(0), mClass_set(false)
+Net::Net() :
+  mClass(0),
+  mClass_set(false)
 {
 }
 
@@ -11928,8 +12221,13 @@ void Busses::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Instance::Instance()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mSmashed(Smashed_Invalid)
+Instance::Instance() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mSmashed(Smashed_no),
+  mRot("R0")
 {
 }
 
@@ -12180,8 +12478,15 @@ void Instances::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Moduleinst::Moduleinst()
-  : mX(0.0), mX_set(false), mY(0.0), mY_set(false), mOffset(0), mOffset_set(false), mSmashed(Smashed_Invalid)
+Moduleinst::Moduleinst() :
+  mX(0.0),
+  mX_set(false),
+  mY(0.0),
+  mY_set(false),
+  mOffset(0),
+  mOffset_set(false),
+  mSmashed(Smashed_no),
+  mRot("R0")
 {
 }
 
@@ -12465,8 +12770,13 @@ void Moduleinsts::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Sheet::Sheet()
-  : mDescription(nullptr), mPlain(nullptr), mModuleinsts(nullptr), mInstances(nullptr), mBusses(nullptr), mNets(nullptr)
+Sheet::Sheet() :
+  mDescription(nullptr),
+  mPlain(nullptr),
+  mModuleinsts(nullptr),
+  mInstances(nullptr),
+  mBusses(nullptr),
+  mNets(nullptr)
 {
 }
 
@@ -12664,8 +12974,8 @@ void Sheets::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Part::Part()
-  : mSpice(nullptr)
+Part::Part() :
+  mSpice(nullptr)
 {
 }
 
@@ -12930,8 +13240,12 @@ void Parts::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Port::Port()
-  : mSide(0), mSide_set(false), mCoord(0.0), mCoord_set(false), mDirection(Direction_Invalid)
+Port::Port() :
+  mSide(0),
+  mSide_set(false),
+  mCoord(0.0),
+  mCoord_set(false),
+  mDirection(Direction_io)
 {
 }
 
@@ -13145,8 +13459,16 @@ void Ports::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Module::Module()
-  : mDx(0.0), mDx_set(false), mDy(0.0), mDy_set(false), mDescription(nullptr), mPorts(nullptr), mVariantdefs(nullptr), mParts(nullptr), mSheets(nullptr)
+Module::Module() :
+  mDx(0.0),
+  mDx_set(false),
+  mDy(0.0),
+  mDy_set(false),
+  mDescription(nullptr),
+  mPorts(nullptr),
+  mVariantdefs(nullptr),
+  mParts(nullptr),
+  mSheets(nullptr)
 {
 }
 
@@ -13393,8 +13715,16 @@ void Modules::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Schematic::Schematic()
-  : mDescription(nullptr), mLibraries(nullptr), mAttributes(nullptr), mVariantdefs(nullptr), mClasses(nullptr), mModules(nullptr), mParts(nullptr), mSheets(nullptr), mErrors(nullptr)
+Schematic::Schematic() :
+  mDescription(nullptr),
+  mLibraries(nullptr),
+  mAttributes(nullptr),
+  mVariantdefs(nullptr),
+  mClasses(nullptr),
+  mModules(nullptr),
+  mParts(nullptr),
+  mSheets(nullptr),
+  mErrors(nullptr)
 {
 }
 
@@ -13608,8 +13938,13 @@ void Schematic::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Drawing::Drawing()
-  : mLibrary(nullptr), mSchematic(nullptr), mBoard(nullptr), mSettings(nullptr), mGrid(nullptr), mLayers(nullptr)
+Drawing::Drawing() :
+  mLibrary(nullptr),
+  mSchematic(nullptr),
+  mBoard(nullptr),
+  mSettings(nullptr),
+  mGrid(nullptr),
+  mLayers(nullptr)
 {
 }
 
@@ -13746,8 +14081,10 @@ void Drawing::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Note::Note()
-  : mVersion(0.0), mVersion_set(false), mSeverity(Severity_Invalid)
+Note::Note() :
+  mVersion(0.0),
+  mVersion_set(false),
+  mSeverity(Severity_Invalid)
 {
 }
 
@@ -13922,8 +14259,9 @@ void Compatibility::writeElement( QXmlStreamWriter &xml ) const
 }
 
 
-Eagle::Eagle()
-  : mCompatibility(nullptr), mDrawing(nullptr)
+Eagle::Eagle() :
+  mCompatibility(nullptr),
+  mDrawing(nullptr)
 {
 }
 

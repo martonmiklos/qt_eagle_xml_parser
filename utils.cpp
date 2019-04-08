@@ -195,15 +195,15 @@ QPainterPath EAGLE_Utils::viaShapeToPainterPath(const Via &via)
     return path;
 }
 
-float EAGLE_Utils::rotationToDegrees(const QString& rotaion, bool *mirrored, bool* spin)
+float EAGLE_Utils::rotationToDegrees(const QString& rotation, bool *mirrored, bool* spin)
 {
     if (mirrored != nullptr)
-        *mirrored = rotaion.contains('M');
+        *mirrored = rotation.contains('M');
     if (spin != nullptr)
-        *spin = rotaion.contains('S');
+        *spin = rotation.contains('S');
 
     QRegularExpression re("[^0-9]*(.*)");
-    return re.match(rotaion).captured(1).toFloat();
+    return re.match(rotation).captured(1).toFloat();
 }
 
 QRectF EAGLE_Utils::boardBoundingRect(Board *brd)
