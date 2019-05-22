@@ -224,6 +224,13 @@ QRectF EAGLE_Utils::boardBoundingRect(Board *brd)
     return poly.boundingRect();
 }
 
+Qt::PenCapStyle EAGLE_Utils::wireCapStyleToPenCapStyle(const Wire::CapEnum capStyle)
+{
+    if (capStyle == Wire::Cap_round)
+        return Qt::RoundCap;
+    return Qt::FlatCap;
+}
+
 int EAGLE_Utils::painterPathWireIntersections(const QPainterPath &path,
                                               const QPointF &pathCenter,
                                               const Wire &wire,

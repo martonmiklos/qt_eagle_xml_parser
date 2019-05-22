@@ -110,6 +110,8 @@ public:
     static float rotationToDegrees(const QString& rotation, bool* mirrored = nullptr, bool *spin = nullptr);
     static QRectF boardBoundingRect(Board* brd);
 
+    static Qt::PenCapStyle wireCapStyleToPenCapStyle(const Wire::CapEnum capStyle);
+
 private:
     static QPainterPath smdToStopMaskPainterPath(const Smd &smd, DRULoader *dru);
     static QPainterPath padToStopMaskPainterPath(const Pad &pad, DRULoader *dru);
