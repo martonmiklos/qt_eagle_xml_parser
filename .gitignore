@@ -47,3 +47,6 @@ tools/*.xsd
 tools/*fixed.dtd
 
 .directory
+
+eagle.dtd
+eagle.xsd
